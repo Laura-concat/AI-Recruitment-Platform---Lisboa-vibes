@@ -2,8 +2,8 @@
 
 ## Document Information
 - Product Name: Recruitment AI Tool
-- Version: 1.0
-- Last Updated: 2026-05-06
+- Version: 1.1
+- Last Updated: 2026-05-11
 - Status: Draft
 
 ## Product Overview
@@ -50,36 +50,52 @@ This platform addresses the saturation and inefficiency of the current recruitme
 - **Description**: Allows candidates to upload their resumes for profiling.
 - **User Story**: "As a developer, I want to upload my CV so that I can create an accurate profile for potential employers to view."
 - **Acceptance Criteria**:
-  1. The system accepts all standard CV formats.
-  2. Successful upload confirmation is provided.
-  3. The platform extracts key data to populate the candidate's profile.
+  1. The system accepts PDF and DOCX formats (validated by file type, not just extension).
+  2. Upload is rejected immediately if the file is not a valid PDF or DOCX.
+  3. Successful upload confirmation is provided immediately; processing begins in the background.
+  4. Arabic, English, and bilingual CVs are all supported.
+  5. Candidates may upload a maximum of 3 CVs per day (rate-limited to control AI costs).
 - **Priority**: P0
 
 ### Feature 2: AI Profile Analysis
-- **Description**: Analyzes uploaded CVs to fill candidate profiles with skills and experience.
+- **Description**: Analyzes uploaded CVs using Claude API to populate a structured candidate profile.
 - **User Story**: "As a candidate, I want the AI to analyze my CV so that my profile reflects my true capabilities."
 - **Acceptance Criteria**:
-  1. Profiles are automatically populated with accurate skills and experience.
-  2. Candidates receive an analysis summary.
-  3. Profiles are updated in real-time.
+  1. Profiles are automatically populated with: skills, experience years, seniority level, work history, education, and languages.
+  2. A live progress indicator is shown during processing (typically 15–45 seconds).
+  3. Candidates receive an analysis summary once processing completes.
+  4. Candidates can edit any field the AI populated.
 - **Priority**: P0
 
 ### Feature 3: Job Description Uploader
-- **Description**: Allows clients to upload job descriptions.
+- **Description**: Allows clients with an active subscription to upload job descriptions.
 - **User Story**: "As a client, I want to upload job descriptions so that I can find suitable candidates."
 - **Acceptance Criteria**:
-  1. The system accepts various document formats.
+  1. The system accepts PDF, DOCX, and plain text input.
   2. Job descriptions can be edited after upload.
   3. Confirmation provided post-upload.
+  4. Only clients with an active subscription can post jobs.
 - **Priority**: P1
 
 ### Feature 4: AI Matchmaker
-- **Description**: Matches the most relevant candidates to job postings using AI.
+- **Description**: Matches the most relevant candidates to job postings using a two-stage AI pipeline (embedding similarity + Claude re-ranking).
 - **User Story**: "As a client, I want the AI to match candidates to my job description so that I get the best fit for my needs."
 - **Acceptance Criteria**:
-  1. Matches are presented within 24 hours.
-  2. At least 80% match accuracy based on skills and job requirements.
-  3. Clients can rate match accuracy.
+  1. Matching begins automatically when a job is posted; results are typically available within minutes, guaranteed within 2 hours.
+  2. Only candidate profiles marked as visible are included in matching.
+  3. At least 80% match accuracy based on skills and job requirements (measured via client outcome feedback).
+  4. Clients can rate each match (1–5 stars) and mark outcome (shortlisted / interviewing / hired / rejected).
+  5. Matching is rate-limited to 1 trigger per job per 24 hours.
+- **Priority**: P0
+
+### Feature 5: Subscription & Access Control
+- **Description**: Stripe-powered subscription billing for client access to the platform.
+- **User Story**: "As a client, I want to pay for a membership so that I can access candidate profiles and job matching."
+- **Acceptance Criteria**:
+  1. Clients can subscribe via a Stripe Checkout flow.
+  2. Clients can manage or cancel their subscription via a Stripe Customer Portal link.
+  3. Access to match results and candidate profiles is gated behind an active subscription.
+  4. Subscription status updates in real-time via Stripe webhooks.
 - **Priority**: P0
 
 ## User Flows
@@ -104,10 +120,15 @@ This platform addresses the saturation and inefficiency of the current recruitme
 
 ## Technical Considerations
 
-- **Platform Requirements**: Accessible on both web and mobile platforms to cater to a diverse range of users.
-- **Integration Needs**: OAuth for secure user authentication, integration with major job boards for broader reach.
-- **Scalability Considerations**: Built on a scalable cloud infrastructure to handle an increasing number of users and data.
-- **Performance Requirements**: System should perform AI matching within 24 hours per job description upload.
+- **Platform Requirements**: Responsive web application, accessible on desktop and mobile browsers.
+- **Authentication**: Clerk (managed auth) with Google OAuth and magic-link email sign-in.
+- **AI Processing**: All Claude API calls are asynchronous background jobs (Inngest); the UI shows live status while processing. No synchronous LLM calls on API routes.
+- **Matching Architecture**: Two-stage pipeline — Voyage AI multilingual embeddings for initial candidate retrieval via pgvector similarity search, followed by Claude re-ranking with match explanation.
+- **Payments**: Stripe subscription billing. Client access to match results and candidate profiles is gated behind an active subscription.
+- **File Handling**: CVs stored in Vercel Blob as private objects; accessed via signed URLs only.
+- **Arabic Language Support**: The platform must correctly parse and process Arabic, English, and bilingual CVs. Voyage AI's multilingual embedding model is used specifically for Arabic/English support.
+- **Scalability**: Serverless deployment on Vercel; Neon auto-scales PostgreSQL. At 500 candidates and 150 companies, no additional infrastructure is needed.
+- **Performance**: Matching results typically available within minutes of job posting. CV analysis typically completes within 45 seconds.
 
 ## Success Criteria
 
@@ -128,8 +149,10 @@ This platform addresses the saturation and inefficiency of the current recruitme
 
 ## Out of Scope (for MVP)
 - Advanced analytics dashboard for clients.
-- Multi-language support beyond Arabic and English.
+- Multi-language UI support beyond English (Arabic UI is post-MVP; Arabic CV *content* is in-scope).
 - Integration with external HR management systems.
+- Integration with job boards (LinkedIn, Indeed, etc.) — out of scope entirely for v1.
+- Mobile native apps (iOS/Android).
 
 ---
 
