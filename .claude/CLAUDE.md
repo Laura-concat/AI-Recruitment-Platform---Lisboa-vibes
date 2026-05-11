@@ -20,11 +20,24 @@ npm run db:push      # Push schema changes
 
 ### Project Structure
 ```
-confabulator/        # Project documentation (IMPORTANT - read these first)
+mocks/               # UI DESIGN SOURCE OF TRUTH (read these before building any UI)
+├── 01-landing-page.png
+├── 02-sign-up-role-selection.png
+├── 03-login.png
+├── 04-candidate-cv-upload.png
+├── 05-ai-analysis-processing.png
+├── 06-candidate-profile.png
+├── 07-candidate-dashboard.png
+├── 08-client-dashboard.png
+├── 09-client-post-job.png
+├── 10-client-match-results.png
+├── 11-client-candidate-view.png
+└── 12-pricing-page.png
+confabulator/        # Project documentation
 ├── PRD.md           # Product requirements and features
 ├── project-vision.md # Vision and problem statement
 ├── implementation-plan.md # Technical architecture and roadmap
-├── wireframes.md    # UI/UX wireframes and screen flows
+├── wireframes.md    # UI/UX wireframes (superseded by mocks/)
 ├── business-model-canvas.md # Business model
 └── PR-FAQ.md        # Press release and FAQ
 src/                 # Source code
@@ -49,6 +62,30 @@ both
 
 TypeScript, JavaScript, Next.js, React, Shadcn, Tailwind, shadcn/ui, Radix UI, React Hook Form, Zod, Drizzle, Nextauth, Clerk, Vercel, DrizzleORM, Stripe, NextAuth.js, Postgresql
 
+## UI Design Source of Truth
+
+**CRITICAL**: The `mocks/` directory contains the authoritative screen designs for all user-facing front-end work. These are exported from Frame0 and must be used as the reference for layout, spacing, components, copy, and visual hierarchy when building any UI.
+
+| Screen | File | Route |
+|--------|------|-------|
+| Landing Page | `mocks/01-landing-page.png` | `/` |
+| Sign Up Role Selection | `mocks/02-sign-up-role-selection.png` | `/sign-up` |
+| Login | `mocks/03-login.png` | `/login` |
+| Candidate CV Upload | `mocks/04-candidate-cv-upload.png` | `/onboarding/upload` |
+| AI Analysis Processing | `mocks/05-ai-analysis-processing.png` | `/onboarding/analysing` |
+| Candidate Profile | `mocks/06-candidate-profile.png` | `/profile` |
+| Candidate Dashboard | `mocks/07-candidate-dashboard.png` | `/dashboard` (candidate) |
+| Client Dashboard | `mocks/08-client-dashboard.png` | `/dashboard` (client) |
+| Client Post Job | `mocks/09-client-post-job.png` | `/jobs/new` |
+| Client Match Results | `mocks/10-client-match-results.png` | `/jobs/[id]/matches` |
+| Client Candidate View | `mocks/11-client-candidate-view.png` | `/candidates/[id]` |
+| Pricing Page | `mocks/12-pricing-page.png` | `/pricing` |
+
+When building any front-end screen:
+1. **Open the corresponding mock** in `mocks/` first
+2. Match the layout, components, colours, and copy exactly
+3. `confabulator/wireframes.md` is superseded by `mocks/` — use `mocks/` for all UI decisions
+
 ## Key Documentation
 
 **CRITICAL**: Before starting any work, familiarize yourself with the Confabulator documentation in `confabulator/`:
@@ -58,7 +95,7 @@ TypeScript, JavaScript, Next.js, React, Shadcn, Tailwind, shadcn/ui, Radix UI, R
 | `PRD.md` | Feature specs, user stories, acceptance criteria | Before implementing any feature |
 | `project-vision.md` | Problem statement, target users, goals | For strategic decisions |
 | `implementation-plan.md` | Architecture, tech stack, data model, API routes | Technical implementation |
-| `wireframes.md` | UI layouts, screen flows, component placement | Building UI components |
+| `wireframes.md` | UI layouts (superseded by `mocks/`) | Legacy reference only |
 | `business-model-canvas.md` | Revenue, costs, partnerships | Business logic decisions |
 
 ## Development Guidelines
@@ -73,7 +110,7 @@ TypeScript, JavaScript, Next.js, React, Shadcn, Tailwind, shadcn/ui, Radix UI, R
 ### Before Implementing Features
 1. Read the relevant user story in `confabulator/implementation-plan.md`
 2. Check acceptance criteria in `confabulator/PRD.md`
-3. Reference wireframes in `confabulator/wireframes.md` for UI guidance
+3. **Open the corresponding mock in `mocks/`** — this is the source of truth for all UI
 4. Follow the data model and API routes in the implementation plan
 
 ### Error Handling
