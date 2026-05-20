@@ -4,28 +4,60 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 export default function CandidateCVUploadPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function validateFileSize(selectedFile: File): boolean {
+    if (selectedFile.size <= MAX_FILE_SIZE_BYTES) {
+      return true;
+    }
+
+    setError("File is too large. Please upload a CV up to 10 MB.");
+    return false;
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0] ?? null;
-    if (selected) setFile(selected);
+    if (!selected) return;
+
+    if (!validateFileSize(selected)) {
+      setFile(null);
+      e.target.value = "";
+      return;
+    }
+
+    setError(null);
+    setFile(selected);
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer.files?.[0] ?? null;
-    if (dropped) setFile(dropped);
+    if (!dropped) return;
+
+    if (!validateFileSize(dropped)) {
+      setFile(null);
+      return;
+    }
+
+    setError(null);
+    setFile(dropped);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
+    if (!validateFileSize(file)) return;
+
+    setError(null);
     setUploading(true);
     setTimeout(() => router.push("/onboarding/analysing"), 1200);
   }
@@ -104,7 +136,12 @@ export default function CandidateCVUploadPage() {
             <div
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
+              onDragLeave={(e) => {
+                const nextTarget = e.relatedTarget as Node | null;
+                if (!nextTarget || !e.currentTarget.contains(nextTarget)) {
+                  setDragging(false);
+                }
+              }}
               onDrop={handleDrop}
               className={`border-2 border-dashed rounded-xl p-16 cursor-pointer transition-colors ${
                 dragging
@@ -126,6 +163,11 @@ export default function CandidateCVUploadPage() {
             </div>
           )}
         </form>
+        {error && (
+          <p className="text-sm text-red-600 mt-3" role="alert">
+            {error}
+          </p>
+        )}
 
         <p className="text-xs text-gray-400 mt-4 flex items-center justify-center gap-1.5">
           <span>🔒</span>

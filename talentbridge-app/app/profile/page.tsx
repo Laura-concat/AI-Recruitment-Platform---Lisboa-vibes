@@ -4,6 +4,31 @@ import Link from "next/link";
 import { useState } from "react";
 import { Navbar } from "@/components/navbar";
 
+interface ExperienceItem {
+  role: string;
+  company: string;
+  period: string;
+}
+
+interface CandidateProfile {
+  name: string;
+  initials: string;
+  title: string;
+  experience: string;
+  location: string;
+  availability: string;
+  languages: string[];
+  completeness: number;
+  skills: string[];
+  experienceLevel: string;
+  experienceYears: number;
+  languageProficiency: string;
+  education: string;
+  availability2: string;
+  summary: string;
+  experience_items: ExperienceItem[];
+}
+
 const INITIAL = {
   name: "Leila Mansour",
   initials: "LM",
@@ -27,14 +52,23 @@ const INITIAL = {
   ],
 };
 
+function createProfileDraft(source: CandidateProfile): CandidateProfile {
+  return {
+    ...source,
+    languages: [...source.languages],
+    skills: [...source.skills],
+    experience_items: source.experience_items.map((item) => ({ ...item })),
+  };
+}
+
 export default function CandidateProfilePage() {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [profile, setProfile] = useState(INITIAL);
-  const [draft, setDraft] = useState(INITIAL);
+  const [profile, setProfile] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
+  const [draft, setDraft] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
 
   function startEdit() {
-    setDraft(profile);
+    setDraft(createProfileDraft(profile));
     setEditing(true);
     setSaved(false);
   }
@@ -44,7 +78,7 @@ export default function CandidateProfilePage() {
   }
 
   function saveEdit() {
-    setProfile(draft);
+    setProfile(createProfileDraft(draft));
     setEditing(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
