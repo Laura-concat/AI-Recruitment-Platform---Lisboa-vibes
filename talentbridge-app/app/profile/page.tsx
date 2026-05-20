@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/nextjs";
 import { Navbar } from "@/components/navbar";
+import { updateProfile } from "@/app/actions/updateProfile";
 
 interface ExperienceItem {
   role: string;
@@ -62,10 +64,41 @@ function createProfileDraft(source: CandidateProfile): CandidateProfile {
 }
 
 export default function CandidateProfilePage() {
+  const { user } = useUser();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
   const [draft, setDraft] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
+
+  // Fetch real profile from DB on mount
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const name = user?.fullName ?? user?.firstName ?? INITIAL.name;
+        const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+        const merged: CandidateProfile = {
+          ...INITIAL,
+          name,
+          initials,
+          skills: data.skills?.length ? data.skills : INITIAL.skills,
+          languages: data.languages?.length ? data.languages : INITIAL.languages,
+          summary: data.summary ?? INITIAL.summary,
+          education: typeof data.education === "string" ? data.education : INITIAL.education,
+          experience_items: Array.isArray(data.experienceItems) && data.experienceItems.length
+            ? data.experienceItems
+            : INITIAL.experience_items,
+          experienceYears: data.experienceYears ?? INITIAL.experienceYears,
+          experienceLevel: data.seniorityLevel ?? INITIAL.experienceLevel,
+          languageProficiency: data.languages?.join(" & ") || INITIAL.languageProficiency,
+        };
+        setProfile(createProfileDraft(merged));
+        setDraft(createProfileDraft(merged));
+      })
+      .catch(() => {/* keep INITIAL data on error */});
+  }, [user]);
 
   function startEdit() {
     setDraft(createProfileDraft(profile));
@@ -77,11 +110,25 @@ export default function CandidateProfilePage() {
     setEditing(false);
   }
 
-  function saveEdit() {
-    setProfile(createProfileDraft(draft));
-    setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  async function saveEdit() {
+    setSaving(true);
+    try {
+      await updateProfile({
+        summary: draft.summary,
+        skills: draft.skills,
+        languages: draft.languages,
+        education: draft.education,
+        experienceItems: draft.experience_items,
+      });
+      setProfile(createProfileDraft(draft));
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      // keep editing open on error
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -127,9 +174,11 @@ export default function CandidateProfilePage() {
                 </button>
                 <button
                   onClick={saveEdit}
-                  className="text-sm bg-[#1a3d2b] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+                  disabled={saving}
+                  className="text-sm bg-[#1a3d2b] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
                 >
-                  Save Changes
+                  {saving && <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </>
             ) : (

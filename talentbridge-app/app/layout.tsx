@@ -24,7 +24,11 @@ const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function MaybeClerk({ children }: { children: React.ReactNode }) {
   if (clerkEnabled) {
-    return <ClerkProvider>{children}</ClerkProvider>;
+    return (
+      <ClerkProvider signInUrl="/login" signUpUrl="/sign-up" afterSignOutUrl="/">
+        {children}
+      </ClerkProvider>
+    );
   }
   return <>{children}</>;
 }

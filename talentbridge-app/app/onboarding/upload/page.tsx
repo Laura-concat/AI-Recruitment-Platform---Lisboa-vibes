@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { uploadCv } from "@/app/actions/uploadCv";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -52,14 +53,26 @@ export default function CandidateCVUploadPage() {
     setFile(dropped);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return;
     if (!validateFileSize(file)) return;
 
     setError(null);
     setUploading(true);
-    setTimeout(() => router.push("/onboarding/analysing"), 1200);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const result = await uploadCv(formData);
+
+    if ("error" in result) {
+      setError(result.error ?? "An unexpected error occurred.");
+      setUploading(false);
+      return;
+    }
+
+    router.push(`/onboarding/analysing?cvId=${result.cvId}`);
   }
 
   return (

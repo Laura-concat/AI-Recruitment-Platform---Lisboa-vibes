@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+--> statement-breakpoint
 CREATE TYPE "public"."cv_status" AS ENUM('pending', 'processing', 'complete', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."job_status" AS ENUM('pending', 'matching', 'complete');--> statement-breakpoint
 CREATE TYPE "public"."match_outcome" AS ENUM('shortlisted', 'interviewing', 'hired', 'rejected');--> statement-breakpoint

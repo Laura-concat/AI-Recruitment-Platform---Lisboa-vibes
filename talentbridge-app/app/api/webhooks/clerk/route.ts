@@ -9,6 +9,7 @@ interface ClerkUserCreatedEvent {
     id: string;
     email_addresses: Array<{ email_address: string }>;
     public_metadata: { role?: "candidate" | "client" };
+    unsafe_metadata: { role?: "candidate" | "client" };
   };
 }
 
@@ -45,9 +46,9 @@ export async function POST(request: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  const { id, email_addresses, public_metadata } = event.data;
+  const { id, email_addresses, public_metadata, unsafe_metadata } = event.data;
   const email = email_addresses[0]?.email_address;
-  const role = public_metadata?.role ?? "candidate";
+  const role = public_metadata?.role ?? unsafe_metadata?.role ?? "candidate";
 
   if (!email) {
     return new Response("No email address found", { status: 400 });

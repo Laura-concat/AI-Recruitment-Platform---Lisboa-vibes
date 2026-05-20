@@ -3,14 +3,34 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSignIn } from "@clerk/nextjs/legacy";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isLoaded, signIn, setActive } = useSignIn();
   const [role, setRole] = useState<"candidate" | "client">("candidate");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleSignIn(e: React.FormEvent) {
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
-    router.push(role === "client" ? "/dashboard/client" : "/dashboard");
+    if (!isLoaded || !signIn) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await signIn.create({ identifier: email, password });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        router.push(role === "client" ? "/dashboard/client" : "/dashboard");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Sign in failed. Please check your credentials.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -23,15 +43,12 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
         <p className="text-sm text-gray-500 mb-6">Sign in to your TalentBridge account.</p>
 
-        {/* Role toggle */}
         <div className="flex rounded-lg border border-gray-200 p-1 mb-5 gap-1">
           <button
             type="button"
             onClick={() => setRole("candidate")}
             className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
-              role === "candidate"
-                ? "bg-[#1a3d2b] text-white"
-                : "text-gray-500 hover:text-gray-700"
+              role === "candidate" ? "bg-[#1a3d2b] text-white" : "text-gray-500 hover:text-gray-700"
             }`}
           >
             I&apos;m a Developer
@@ -40,9 +57,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => setRole("client")}
             className={`flex-1 text-sm py-1.5 rounded-md font-medium transition-colors ${
-              role === "client"
-                ? "bg-[#1a3d2b] text-white"
-                : "text-gray-500 hover:text-gray-700"
+              role === "client" ? "bg-[#1a3d2b] text-white" : "text-gray-500 hover:text-gray-700"
             }`}
           >
             I&apos;m Hiring
@@ -51,11 +66,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSignIn} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email address
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
             <input
               type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder={role === "client" ? "ahmed@dubaifintech.com" : "leila@gmail.com"}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] focus:border-transparent"
             />
@@ -64,37 +80,32 @@ export default function LoginPage() {
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-gray-700">Password</label>
-              <Link href="#" className="text-xs text-[#1a3d2b] hover:underline">
-                Forgot password?
-              </Link>
+              <Link href="#" className="text-xs text-[#1a3d2b] hover:underline">Forgot password?</Link>
             </div>
             <input
               type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] focus:border-transparent"
             />
           </div>
 
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md" role="alert">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-[#1a3d2b] text-white py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity mt-2"
+            disabled={loading || !isLoaded}
+            className="w-full bg-[#1a3d2b] text-white py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity mt-2 disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            Sign In
+            {loading && <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
-
-        <div className="mt-4 space-y-2">
-          <div className="relative flex items-center">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="mx-3 text-xs text-gray-400">or</span>
-            <div className="flex-grow border-t border-gray-200"></div>
-          </div>
-          <button className="w-full border border-gray-300 rounded-md py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-            Continue with Google
-          </button>
-          <button className="w-full border border-gray-300 rounded-md py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-            Continue with GitHub
-          </button>
-        </div>
 
         <p className="text-center text-xs text-gray-500 mt-6">
           Don&apos;t have an account?{" "}

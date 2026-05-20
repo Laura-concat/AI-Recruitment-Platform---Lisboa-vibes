@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const STEPS = [
   { label: "Reading CV document", threshold: 10 },
@@ -13,27 +14,79 @@ const STEPS = [
   { label: "Building your public profile", threshold: 98 },
 ];
 
-export default function AIAnalysingPage() {
+function AIAnalysingContent() {
   const router = useRouter();
-  const [progress, setProgress] = useState(0);
+  const searchParams = useSearchParams();
+  const cvId = searchParams.get("cvId");
 
+  const [progress, setProgress] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const completedRef = useRef(false);
+
+  // Animate progress bar
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setTimeout(() => router.push("/profile"), 600);
-          return 100;
-        }
-        const increment = p < 80 ? 1.4 : 0.6;
-        return Math.min(p + increment, 100);
+        if (p >= 95) return 95; // hold at 95% until real completion
+        return p + (p < 80 ? 1.4 : 0.4);
       });
     }, 80);
     return () => clearInterval(interval);
-  }, [router]);
+  }, []);
+
+  // Poll real CV status if cvId is present
+  useEffect(() => {
+    if (!cvId) {
+      // No real CV — simulate completion after animation
+      const timer = setTimeout(() => router.push("/profile"), 7000);
+      return () => clearTimeout(timer);
+    }
+
+    const poll = setInterval(async () => {
+      if (completedRef.current) return;
+      try {
+        const res = await fetch(`/api/cvs/${cvId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.status === "complete") {
+          completedRef.current = true;
+          clearInterval(poll);
+          setProgress(100);
+          setTimeout(() => router.push("/profile"), 600);
+        } else if (data.status === "failed") {
+          completedRef.current = true;
+          clearInterval(poll);
+          setFailed(true);
+        }
+      } catch {
+        // network error — keep polling
+      }
+    }, 2000);
+
+    return () => clearInterval(poll);
+  }, [cvId, router]);
 
   const completedCount = STEPS.filter((s) => progress >= s.threshold).length;
   const activeIndex = completedCount < STEPS.length ? completedCount : -1;
+
+  if (failed) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-4xl mb-4">⚠️</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Analysis failed</h1>
+        <p className="text-gray-500 mb-6 max-w-sm">
+          Something went wrong while analysing your CV. Please try uploading again.
+        </p>
+        <Link
+          href="/onboarding/upload"
+          className="bg-[#1a3d2b] text-white px-6 py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Try again →
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -100,5 +153,13 @@ export default function AIAnalysingPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AIAnalysingPage() {
+  return (
+    <Suspense>
+      <AIAnalysingContent />
+    </Suspense>
   );
 }
