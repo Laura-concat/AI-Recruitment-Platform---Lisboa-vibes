@@ -14,11 +14,9 @@ export async function GET(req: NextRequest) {
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
   const token = await clerk.signInTokens.createSignInToken({
     userId,
-    expiresInSeconds: 60,
+    expiresInSeconds: 120,
   });
 
-  // Redirect to the sign-in page with the ticket — Clerk auto-completes the sign-in
-  const url = new URL("/login", req.nextUrl.origin);
-  url.searchParams.set("__clerk_ticket", token.token);
-  return NextResponse.redirect(url);
+  // Use Clerk's own hosted sign-in URL — it processes the ticket natively
+  return NextResponse.redirect(token.url);
 }
