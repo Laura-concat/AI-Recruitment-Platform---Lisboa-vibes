@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { candidateProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { Navbar } from "@/components/navbar";
+import { redirect } from "next/navigation";
 
 const jobMatches = [
   {
@@ -52,6 +53,12 @@ function calcCompleteness(p: {
 
 export default async function CandidateDashboardPage() {
   const { userId } = await auth();
+
+  // Redirect clients to their own dashboard
+  const clerkUser = userId ? await currentUser() : null;
+  if (clerkUser?.unsafeMetadata?.role === "client") {
+    redirect("/dashboard/client");
+  }
   const profile = userId
     ? (await db.select({
         id: candidateProfiles.id,
