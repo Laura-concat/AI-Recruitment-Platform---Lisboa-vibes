@@ -15,8 +15,11 @@ export default function LoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setError(null);
+    if (!isLoaded || !signIn) {
+      setError("Authentication is not ready yet. Please refresh the page and try again.");
+      return;
+    }
     setLoading(true);
     try {
       const result = await signIn.create({
@@ -27,11 +30,14 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/dashboard");
+      } else {
+        setError(`Unexpected sign-in state: ${result.status}. Please try again.`);
       }
     } catch (err: unknown) {
       const clerkErr = err as { errors?: { message: string; code?: string }[] };
-      const msg = clerkErr.errors?.[0]?.message ?? "Sign in failed. Please check your credentials.";
-      setError(msg);
+      const firstError = clerkErr.errors?.[0];
+      setError(firstError?.message ?? "Sign in failed. Please check your credentials.");
+      console.error("Sign-in error:", clerkErr.errors);
     } finally {
       setLoading(false);
     }
@@ -79,7 +85,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || !isLoaded}
+            disabled={loading}
             className="w-full bg-[#1a3d2b] text-white py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity mt-2 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading && <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
