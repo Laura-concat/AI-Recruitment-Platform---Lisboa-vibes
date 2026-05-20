@@ -37,6 +37,8 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   // Strip the "Full-time · Remote\n\n" prefix if present
   const descBody = job.description.replace(/^[^\n]+\n\n/, "");
 
+  const extReqs = reqs as typeof reqs & { country?: string; city?: string } | null;
+
   return (
     <EditJobForm
       jobId={job.id}
@@ -44,6 +46,8 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
       initialDescription={descBody}
       initialEmploymentType={reqs?.employmentType ?? "Full-time"}
       initialLocation={reqs?.location ?? "Remote"}
+      initialCountry={extReqs?.country ?? ""}
+      initialCity={extReqs?.city ?? ""}
       initialSkills={reqs?.skills ?? []}
       initialDeadline={
         job.applyDeadline

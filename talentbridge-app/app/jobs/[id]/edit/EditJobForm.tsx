@@ -11,6 +11,8 @@ interface Props {
   initialDescription: string;
   initialEmploymentType: string;
   initialLocation: string;
+  initialCountry: string;
+  initialCity: string;
   initialSkills: string[];
   initialDeadline: string;
 }
@@ -21,6 +23,8 @@ export default function EditJobForm({
   initialDescription,
   initialEmploymentType,
   initialLocation,
+  initialCountry,
+  initialCity,
   initialSkills,
   initialDeadline,
 }: Props) {
@@ -29,6 +33,8 @@ export default function EditJobForm({
   const [description, setDescription] = useState(initialDescription);
   const [employmentType, setEmploymentType] = useState(initialEmploymentType);
   const [location, setLocation] = useState(initialLocation);
+  const [country, setCountry] = useState(initialCountry);
+  const [city, setCity] = useState(initialCity);
   const [deadline, setDeadline] = useState(initialDeadline);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +52,8 @@ export default function EditJobForm({
       formData.set("description", description);
       formData.set("employmentType", employmentType);
       formData.set("location", location);
+      formData.set("country", country);
+      formData.set("city", city);
       formData.set("applyDeadline", deadline);
 
       const result = await updateJob(formData);
@@ -144,18 +152,47 @@ export default function EditJobForm({
               </div>
             </div>
 
+            {location === "On-site" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Country *
+                  </label>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. United Arab Emirates"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Dubai"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Application Deadline
+                Application Deadline *
               </label>
               <input
                 type="date"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
+                required
                 className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
               />
-              <p className="text-xs text-gray-400 mt-1">Leave blank for no deadline.</p>
             </div>
 
             <div>

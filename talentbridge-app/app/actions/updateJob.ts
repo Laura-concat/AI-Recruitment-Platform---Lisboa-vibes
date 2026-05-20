@@ -27,6 +27,10 @@ export async function updateJob(formData: FormData) {
   const employmentType = (formData.get("employmentType") as string | null)?.trim() ?? "Full-time";
   const location = (formData.get("location") as string | null)?.trim() ?? "Remote";
   const deadlineRaw = (formData.get("applyDeadline") as string | null)?.trim() ?? "";
+  const country = (formData.get("country") as string | null)?.trim() ?? "";
+  const city = (formData.get("city") as string | null)?.trim() ?? "";
+
+  if (!deadlineRaw) return { error: "Please set an application deadline." };
 
   const parsed = parseJobFromText(description, title || undefined);
   const finalTitle = title || parsed.title || "Untitled Position";
@@ -39,6 +43,7 @@ export async function updateJob(formData: FormData) {
     experienceYears: parsed.experienceYears ?? prevReqs?.experienceYears ?? null,
     employmentType,
     location,
+    ...(location === "On-site" && country ? { country, city } : { country: undefined, city: undefined }),
   };
 
   await db

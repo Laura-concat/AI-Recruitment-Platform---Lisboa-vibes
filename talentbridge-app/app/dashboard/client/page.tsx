@@ -87,9 +87,12 @@ export default async function ClientDashboardPage() {
           ) : (
             <div className="space-y-3">
               {activeJobs.map((job) => {
-                const reqs = job.requirements as { skills?: string[]; experienceYears?: number; employmentType?: string; location?: string } | null;
+                const reqs = job.requirements as { skills?: string[]; experienceYears?: number; employmentType?: string; location?: string; country?: string; city?: string } | null;
                 const skillCount = reqs?.skills?.length ?? 0;
-                const meta = [reqs?.employmentType, reqs?.location].filter(Boolean).join(" · ");
+                const locationLabel = reqs?.location === "On-site" && (reqs?.city || reqs?.country)
+                  ? `On-site · ${[reqs.city, reqs.country].filter(Boolean).join(", ")}`
+                  : reqs?.location;
+                const meta = [reqs?.employmentType, locationLabel].filter(Boolean).join(" · ");
                 const postedDate = new Date(job.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
                 const deadlineDate = job.applyDeadline
                   ? new Date(job.applyDeadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })

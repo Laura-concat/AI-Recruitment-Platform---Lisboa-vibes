@@ -24,6 +24,8 @@ export async function createJob(formData: FormData) {
   const employmentType = (formData.get("employmentType") as string | null)?.trim() ?? "Full-time";
   const location = (formData.get("location") as string | null)?.trim() ?? "Remote";
   const deadlineRaw = (formData.get("applyDeadline") as string | null)?.trim() ?? "";
+  const country = (formData.get("country") as string | null)?.trim() ?? "";
+  const city = (formData.get("city") as string | null)?.trim() ?? "";
   const file = formData.get("file") as File | null;
 
   let parsed;
@@ -46,6 +48,9 @@ export async function createJob(formData: FormData) {
     rawDescription = text || descriptionInput;
     parsed = parseJobFromText(rawDescription, titleInput || undefined);
   } else {
+    if (!deadlineRaw) {
+    return { error: "Please set an application deadline." };
+  }
     if (!descriptionInput && !titleInput) {
       return { error: "Please provide a job title and description." };
     }
@@ -66,6 +71,7 @@ export async function createJob(formData: FormData) {
         experienceYears: parsed.experienceYears,
         employmentType,
         location,
+        ...(location === "On-site" && country ? { country, city } : {}),
       },
       applyDeadline: deadlineRaw ? new Date(deadlineRaw) : null,
       status: "pending",
