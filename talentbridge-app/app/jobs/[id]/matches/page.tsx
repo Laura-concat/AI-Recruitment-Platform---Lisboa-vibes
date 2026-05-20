@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { Navbar } from "@/components/navbar";
 
-const matches = [
+const INITIAL_MATCHES = [
   {
     id: "leila-mansour",
     initials: "LM",
@@ -31,6 +34,8 @@ const matches = [
   },
 ];
 
+type FeedbackState = "good" | "not-fit" | "intro-sent" | null;
+
 function ScoreBadge({ score }: { score: number }) {
   const bg = score >= 90 ? "bg-[#1a3d2b]" : score >= 85 ? "bg-[#16a34a]" : "bg-amber-500";
   return (
@@ -40,13 +45,108 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+function MatchCard({ match }: { match: typeof INITIAL_MATCHES[0] }) {
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
+
+  function handleFeedback(value: FeedbackState) {
+    setFeedback((prev) => (prev === value ? null : value));
+  }
+
+  function handleIntro() {
+    setFeedback("intro-sent");
+  }
+
+  return (
+    <div className={`bg-white border rounded-xl p-5 transition-colors ${feedback === "not-fit" ? "border-red-200 opacity-60" : feedback === "good" ? "border-green-300" : "border-gray-200"}`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-full bg-[#1a3d2b] text-white flex items-center justify-center font-bold flex-shrink-0">
+            {match.initials}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-semibold text-gray-900">{match.name}</span>
+              {match.badge && (
+                <span className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-0.5 rounded-full font-medium">
+                  {match.badge}
+                </span>
+              )}
+              {feedback === "good" && (
+                <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium">
+                  Good Fit ✓
+                </span>
+              )}
+              {feedback === "not-fit" && (
+                <span className="text-xs bg-red-50 text-red-500 border border-red-200 px-2 py-0.5 rounded-full font-medium">
+                  Not a Fit
+                </span>
+              )}
+              {feedback === "intro-sent" && (
+                <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium">
+                  Intro Requested ✓
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mb-2">{match.title}</p>
+            <p className="text-xs text-gray-400">
+              Skills: {match.skills.join(", ")}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <ScoreBadge score={match.score} />
+          <Link
+            href={`/candidates/${match.id}`}
+            className="text-sm border border-gray-300 px-4 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            View Profile
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+        <button
+          onClick={() => handleFeedback("good")}
+          className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+            feedback === "good"
+              ? "bg-green-100 border-green-400 text-green-700 font-medium"
+              : "border-green-300 text-green-700 hover:bg-green-50"
+          }`}
+        >
+          Good Fit
+        </button>
+        <button
+          onClick={() => handleFeedback("not-fit")}
+          className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+            feedback === "not-fit"
+              ? "bg-red-100 border-red-400 text-red-500 font-medium"
+              : "border-red-200 text-red-500 hover:bg-red-50"
+          }`}
+        >
+          Not a Fit
+        </button>
+        <button
+          onClick={handleIntro}
+          disabled={feedback === "intro-sent"}
+          className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+            feedback === "intro-sent"
+              ? "bg-blue-100 border-blue-300 text-blue-600 font-medium cursor-default"
+              : "border-blue-200 text-blue-600 hover:bg-blue-50"
+          }`}
+        >
+          {feedback === "intro-sent" ? "Intro Sent ✓" : "Request Intro"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MatchResultsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar variant="client" />
 
       <div className="mx-auto max-w-5xl px-6 py-10">
-        {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-4">
           <Link href="/dashboard/client" className="hover:text-[#1a3d2b]">Dashboard</Link>
           {" / "}
@@ -63,55 +163,8 @@ export default function MatchResultsPage() {
         </p>
 
         <div className="space-y-4">
-          {matches.map((m) => (
-            <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-5">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-[#1a3d2b] text-white flex items-center justify-center font-bold flex-shrink-0">
-                    {m.initials}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-semibold text-gray-900">{m.name}</span>
-                      {m.badge && (
-                        <span className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-0.5 rounded-full font-medium">
-                          {m.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mb-2">{m.title}</p>
-                    <p className="text-xs text-gray-400">
-                      Skills: {m.skills.join(", ")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <ScoreBadge score={m.score} />
-                  <Link
-                    href={`/candidates/${m.id}`}
-                    className="text-sm border border-gray-300 px-4 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
-                  >
-                    View Profile
-                  </Link>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                <button className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50">
-                  Rate this Match
-                </button>
-                <button className="text-xs border border-green-300 text-green-700 px-3 py-1.5 rounded-md hover:bg-green-50">
-                  Good Fit
-                </button>
-                <button className="text-xs border border-red-200 text-red-500 px-3 py-1.5 rounded-md hover:bg-red-50">
-                  Not a Fit
-                </button>
-                <button className="text-xs border border-blue-200 text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50">
-                  Request Intro
-                </button>
-              </div>
-            </div>
+          {INITIAL_MATCHES.map((m) => (
+            <MatchCard key={m.id} match={m} />
           ))}
         </div>
       </div>

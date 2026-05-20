@@ -32,7 +32,7 @@ export default function SignUpPage() {
           </Link>
 
           {/* Client card */}
-          <Link href="/dashboard">
+          <Link href="/dashboard/client">
             <div className="border-2 border-gray-200 rounded-xl p-6 hover:border-[#1a3d2b] hover:bg-[#f0fdf4] transition-colors cursor-pointer">
               <div className="text-4xl mb-4">🏢</div>
               <h2 className="text-lg font-bold text-gray-900 mb-2">I&apos;m Hiring</h2>

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { Navbar } from "@/components/navbar";
 
 const candidate = {
@@ -7,7 +10,7 @@ const candidate = {
   title: "Full-Stack Developer · 5 yrs · Beirut, Lebanon · Remote-ready · Bilingual Arabic/English",
   matchScore: 94,
   matchExplanation:
-    "Why this match: Leila's 5 years in React and Node.js aligns perfectly with your stack. Her Bilingual Arabic/English background is ideal for your MENA-focused clients, and her strong Fintech background matches your industry.",
+    "Leila's 5 years in React and Node.js aligns perfectly with your stack. Her bilingual Arabic/English background is ideal for your MENA-focused clients, and her Fintech background matches your industry.",
   skills: ["React", "TypeScript", "Python", "PostgreSQL", "Docker", "AWS"],
   experienceLevel: "Senior",
   experienceYears: "5",
@@ -16,28 +19,22 @@ const candidate = {
   summary:
     "Experienced full-stack developer with 5 years in Fintech & e-commerce across MENA. Bilingual Arabic/English.",
   experience: [
-    {
-      role: "Senior Frontend Dev",
-      company: "Fintech Startup, Beirut",
-      period: "2022–Present",
-    },
-    {
-      role: "Full-Stack Developer",
-      company: "E-commerce Agency, Amman",
-      period: "2019–2022",
-    },
+    { role: "Senior Frontend Dev", company: "Fintech Startup, Beirut", period: "2022–Present" },
+    { role: "Full-Stack Developer", company: "E-commerce Agency, Amman", period: "2019–2022" },
   ],
   education_detail: "BSc Computer Science — AUB, 2019",
   availability: "Full-time · Remote · From June 2026",
 };
 
 export default function ClientCandidateViewPage() {
+  const [verdict, setVerdict] = useState<"fit" | "not-fit" | null>(null);
+  const [introSent, setIntroSent] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar variant="client" />
 
       <div className="mx-auto max-w-5xl px-6 py-10">
-        {/* Breadcrumb */}
         <div className="text-sm text-gray-400 mb-4">
           <Link href="/jobs/1/matches" className="hover:text-[#1a3d2b]">Back to matches</Link>
           {" / "}
@@ -45,6 +42,12 @@ export default function ClientCandidateViewPage() {
           {" / "}
           <span>94% match</span>
         </div>
+
+        {introSent && (
+          <div className="mb-4 bg-[#f0fdf4] border border-[#bbf7d0] text-[#1a3d2b] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+            <span>✓</span> Introduction request sent to Leila Mansour. We&apos;ll be in touch within 24 hours.
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* Left: AI analysis */}
@@ -59,8 +62,12 @@ export default function ClientCandidateViewPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-500 mb-4">{candidate.title}</p>
-              <button className="w-full bg-[#1a3d2b] text-white text-sm py-2.5 rounded-md hover:opacity-90 transition-opacity">
-                Request Intro →
+              <button
+                onClick={() => setIntroSent(true)}
+                disabled={introSent}
+                className="w-full bg-[#1a3d2b] text-white text-sm py-2.5 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {introSent ? "Intro Requested ✓" : "Request Intro →"}
               </button>
             </div>
 
@@ -98,11 +105,29 @@ export default function ClientCandidateViewPage() {
             </div>
 
             <div className="flex gap-2">
-              <button className="flex-1 border border-red-200 text-red-500 text-sm py-2 rounded-md hover:bg-red-50">
-                Not a fit
+              <button
+                onClick={() => setVerdict((v) => (v === "not-fit" ? null : "not-fit"))}
+                className={`flex-1 text-sm py-2 rounded-md border transition-colors ${
+                  verdict === "not-fit"
+                    ? "bg-red-100 border-red-400 text-red-600 font-medium"
+                    : "border-red-200 text-red-500 hover:bg-red-50"
+                }`}
+              >
+                {verdict === "not-fit" ? "Not a Fit ✓" : "Not a fit"}
               </button>
-              <button className="flex-1 bg-[#1a3d2b] text-white text-sm py-2 rounded-md hover:opacity-90">
-                Request intro →
+              <button
+                onClick={() => {
+                  setVerdict("fit");
+                  setIntroSent(true);
+                }}
+                disabled={introSent}
+                className={`flex-1 text-sm py-2 rounded-md transition-colors ${
+                  verdict === "fit"
+                    ? "bg-[#1a3d2b] text-white opacity-70 cursor-default"
+                    : "bg-[#1a3d2b] text-white hover:opacity-90"
+                }`}
+              >
+                {verdict === "fit" ? "Intro Sent ✓" : "Request intro →"}
               </button>
             </div>
           </div>
