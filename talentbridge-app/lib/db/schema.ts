@@ -123,6 +123,7 @@ export const jobs = pgTable(
     requirements: json("requirements"),
     embedding: vector("embedding", { dimensions: 1024 }),
     status: jobStatusEnum("status").notNull().default("pending"),
+    applyDeadline: timestamp("apply_deadline"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

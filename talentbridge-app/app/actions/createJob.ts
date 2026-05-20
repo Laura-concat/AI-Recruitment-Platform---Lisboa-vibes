@@ -23,6 +23,7 @@ export async function createJob(formData: FormData) {
   const descriptionInput = (formData.get("description") as string | null)?.trim() ?? "";
   const employmentType = (formData.get("employmentType") as string | null)?.trim() ?? "Full-time";
   const location = (formData.get("location") as string | null)?.trim() ?? "Remote";
+  const deadlineRaw = (formData.get("applyDeadline") as string | null)?.trim() ?? "";
   const file = formData.get("file") as File | null;
 
   let parsed;
@@ -66,6 +67,7 @@ export async function createJob(formData: FormData) {
         employmentType,
         location,
       },
+      applyDeadline: deadlineRaw ? new Date(deadlineRaw) : null,
       status: "pending",
     })
     .returning({ id: jobs.id });

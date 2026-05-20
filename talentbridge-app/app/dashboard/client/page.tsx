@@ -28,6 +28,7 @@ export default async function ClientDashboardPage() {
           title: jobs.title,
           status: jobs.status,
           requirements: jobs.requirements,
+          applyDeadline: jobs.applyDeadline,
           createdAt: jobs.createdAt,
         })
         .from(jobs)
@@ -89,40 +90,60 @@ export default async function ClientDashboardPage() {
                 const reqs = job.requirements as { skills?: string[]; experienceYears?: number; employmentType?: string; location?: string } | null;
                 const skillCount = reqs?.skills?.length ?? 0;
                 const meta = [reqs?.employmentType, reqs?.location].filter(Boolean).join(" · ");
+                const postedDate = new Date(job.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+                const deadlineDate = job.applyDeadline
+                  ? new Date(job.applyDeadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                  : null;
+                const isDeadlinePast = job.applyDeadline ? new Date(job.applyDeadline) < new Date() : false;
                 return (
                   <div
                     key={job.id}
-                    className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between"
+                    className="bg-white border border-gray-200 rounded-xl px-5 py-4"
                   >
-                    <div>
-                      <p className="font-semibold text-gray-900">{job.title}</p>
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        {meta && <span>{meta} · </span>}
-                        Posted {timeAgo(new Date(job.createdAt))}
-                        {skillCount > 0 && <span> · {skillCount} skills extracted</span>}
-                      </p>
-                      {reqs?.skills && reqs.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {reqs.skills.slice(0, 6).map((skill) => (
-                            <span
-                              key={skill}
-                              className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-0.5 rounded-md"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                          {reqs.skills.length > 6 && (
-                            <span className="text-xs text-gray-400 px-1 py-0.5">+{reqs.skills.length - 6} more</span>
-                          )}
-                        </div>
-                      )}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900">{job.title}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          {meta && <span>{meta} · </span>}
+                          Posted {postedDate}
+                          {skillCount > 0 && <span> · {skillCount} skills extracted</span>}
+                        </p>
+                        {deadlineDate && (
+                          <p className={`text-xs mt-0.5 font-medium ${isDeadlinePast ? "text-red-500" : "text-amber-600"}`}>
+                            {isDeadlinePast ? "Deadline passed:" : "Apply by:"} {deadlineDate}
+                          </p>
+                        )}
+                        {reqs?.skills && reqs.skills.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {reqs.skills.slice(0, 6).map((skill) => (
+                              <span
+                                key={skill}
+                                className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-0.5 rounded-md"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                            {reqs.skills.length > 6 && (
+                              <span className="text-xs text-gray-400 px-1 py-0.5">+{reqs.skills.length - 6} more</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Link
+                          href={`/jobs/${job.id}/edit`}
+                          className="border border-gray-300 text-gray-700 text-sm px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"
+                        >
+                          Edit
+                        </Link>
+                        <Link
+                          href={`/jobs/${job.id}/matches`}
+                          className="bg-[#1a3d2b] text-white text-sm px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+                        >
+                          View Matches →
+                        </Link>
+                      </div>
                     </div>
-                    <Link
-                      href={`/jobs/${job.id}/matches`}
-                      className="shrink-0 ml-4 bg-[#1a3d2b] text-white text-sm px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-                    >
-                      View Matches →
-                    </Link>
                   </div>
                 );
               })}
