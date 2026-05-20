@@ -1,41 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs/legacy";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoaded, signIn, setActive } = useSignIn();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Handle __clerk_ticket param (from test-login redirect)
+  useEffect(() => {
+    const ticket = searchParams.get("__clerk_ticket");
+    if (!ticket || !isLoaded || !signIn) return;
+
+    signIn
+      .create({ strategy: "ticket", ticket })
+      .then(async (result) => {
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId });
+          router.push("/dashboard");
+        }
+      })
+      .catch((err) => {
+        const msg = err?.errors?.[0]?.message ?? "Test login failed.";
+        setError(msg);
+      });
+  }, [isLoaded, signIn, setActive, searchParams, router]);
+
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!isLoaded || !signIn) {
-      setError("Authentication is not ready yet. Please refresh the page and try again.");
+      setError("Authentication is not ready. Please refresh and try again.");
       return;
     }
     setLoading(true);
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
+      const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/dashboard");
       } else {
         setError(`Unexpected sign-in state: ${result.status}. Please try again.`);
+        console.error("Sign-in result:", result);
       }
     } catch (err: unknown) {
-      const clerkErr = err as { errors?: { message: string; code?: string }[] };
-      const firstError = clerkErr.errors?.[0];
-      setError(firstError?.message ?? "Sign in failed. Please check your credentials.");
+      const clerkErr = err as { errors?: { message: string }[] };
+      setError(clerkErr.errors?.[0]?.message ?? "Sign in failed. Please check your credentials.");
       console.error("Sign-in error:", clerkErr.errors);
     } finally {
       setLoading(false);
@@ -77,7 +94,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md" role="alert">
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
               {error}
             </p>
           )}
@@ -92,7 +109,26 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
+        {/* Test login shortcuts */}
+        <div className="mt-6 pt-5 border-t border-gray-100">
+          <p className="text-xs text-gray-400 mb-2 text-center">Test accounts</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href="/api/test-login?role=candidate"
+              className="text-center text-xs border border-gray-200 rounded-md py-2 px-3 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Login as Candidate
+            </a>
+            <a
+              href="/api/test-login?role=client"
+              className="text-center text-xs border border-gray-200 rounded-md py-2 px-3 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Login as Client
+            </a>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-gray-500 mt-5">
           Don&apos;t have an account?{" "}
           <Link href="/sign-up" className="text-[#1a3d2b] font-medium hover:underline">
             Create one →
