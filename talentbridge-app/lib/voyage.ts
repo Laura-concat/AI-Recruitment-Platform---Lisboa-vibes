@@ -1,6 +1,7 @@
-import { VoyageAIClient } from "voyageai";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { VoyageAIClient } = require("voyageai");
 
-const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY });
+const voyage = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY ?? "" });
 
 /** Generate a 1024-dimension embedding using Voyage AI's multilingual model. */
 export async function generateEmbedding(text: string): Promise<number[]> {

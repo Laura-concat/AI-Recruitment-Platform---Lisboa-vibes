@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createJob } from "@/app/actions/createJob";
 
 type Mode = "write" | "upload";
 
@@ -13,6 +13,14 @@ export default function PostJobPage() {
   const [mode, setMode] = useState<Mode>("write");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Controlled fields
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [employmentType, setEmploymentType] = useState("Full-time");
+  const [location, setLocation] = useState("Remote");
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -26,9 +34,32 @@ export default function PostJobPage() {
     if (file) setUploadedFile(file);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/jobs/1/matches");
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("title", title);
+      formData.set("description", description);
+      formData.set("employmentType", employmentType);
+      formData.set("location", location);
+      if (mode === "upload" && uploadedFile) {
+        formData.set("file", uploadedFile);
+      }
+
+      const result = await createJob(formData);
+      if ("error" in result) {
+        setError(result.error ?? "Something went wrong.");
+        return;
+      }
+      router.push("/dashboard/client");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -40,6 +71,12 @@ export default function PostJobPage() {
         <p className="text-sm text-gray-500 mb-6">
           Fill in the details or upload a JD file — our AI will extract the requirements automatically.
         </p>
+
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* Mode toggle */}
         <div className="flex rounded-lg border border-gray-200 bg-white p-1 w-fit gap-1 mb-8">
@@ -70,15 +107,16 @@ export default function PostJobPage() {
         <div className="grid md:grid-cols-3 gap-6">
           <form onSubmit={handleSubmit} className="md:col-span-2 space-y-5">
 
-            {/* Shared: Job Title + Type + Location */}
+            {/* Job Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Job Title *
               </label>
               <input
                 type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Senior React Developer"
-                defaultValue="Senior React Developer"
                 className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
               />
             </div>
@@ -88,7 +126,11 @@ export default function PostJobPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Employment Type *
                 </label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white">
+                <select
+                  value={employmentType}
+                  onChange={(e) => setEmploymentType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
+                >
                   <option>Full-time</option>
                   <option>Contract</option>
                   <option>Part-time</option>
@@ -98,7 +140,11 @@ export default function PostJobPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Location *
                 </label>
-                <select className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white">
+                <select
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
+                >
                   <option>Remote</option>
                   <option>Hybrid</option>
                   <option>On-site</option>
@@ -114,8 +160,9 @@ export default function PostJobPage() {
                 </label>
                 <textarea
                   rows={8}
-                  placeholder="Describe the role, responsibilities and ideal candidate..."
-                  defaultValue="We are looking for a Senior React Developer to join our growing FinTech team in Dubai. You will work closely with our product team to build and scale our consumer-facing web application. The ideal candidate has strong experience with React, TypeScript and Node.js, and is comfortable working in a fast-paced startup environment."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the role, responsibilities, required skills, and years of experience..."
                   className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
                 />
               </div>
@@ -125,7 +172,6 @@ export default function PostJobPage() {
                   Upload Job Description (PDF or DOCX)
                 </label>
 
-                {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -135,7 +181,6 @@ export default function PostJobPage() {
                 />
 
                 {uploadedFile ? (
-                  /* Uploaded state */
                   <div className="border-2 border-[#1a3d2b] bg-[#f0fdf4] rounded-xl p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">📄</span>
@@ -155,7 +200,6 @@ export default function PostJobPage() {
                     </button>
                   </div>
                 ) : (
-                  /* Drop zone */
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -185,16 +229,20 @@ export default function PostJobPage() {
 
                 <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
                   <span>🤖</span>
-                  Our AI will read the file and automatically populate skills and requirements.
+                  We will read the file and automatically extract skills and requirements.
                 </p>
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full bg-[#1a3d2b] text-white py-3 rounded-md font-medium hover:opacity-90 transition-opacity"
+              disabled={submitting}
+              className="w-full bg-[#1a3d2b] text-white py-3 rounded-md font-medium hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Post Job &amp; Start AI Matching →
+              {submitting && (
+                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              )}
+              {submitting ? "Posting..." : "Post Job & Start AI Matching →"}
             </button>
           </form>
 

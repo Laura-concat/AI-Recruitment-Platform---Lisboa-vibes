@@ -4,13 +4,13 @@ import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(request: Request) {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    return new Response("Stripe webhook secret not configured", { status: 500 });
+  if (!stripeKey || !webhookSecret) {
+    return new Response("Stripe not configured", { status: 500 });
   }
+  const stripe = new Stripe(stripeKey);
 
   const body = await request.text();
   const headersList = await headers();
