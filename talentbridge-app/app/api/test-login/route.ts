@@ -2,8 +2,8 @@ import { createClerkClient } from "@clerk/backend";
 import { NextRequest, NextResponse } from "next/server";
 
 const TEST_USERS: Record<string, string> = {
-  candidate: "user_3DzSMpSK24TyTilSVnKcViOpDkf",
-  client: "user_3DzSMzJalCKX9FJvgfM7j8BmSgq",
+  candidate: "user_3E0BxBJYSfEKcuioiFGsJZ6wi12",
+  client: "user_3E0BxIuUrtJcAZ3UNMNMIxnTrlM",
 };
 
 export async function GET(req: NextRequest) {

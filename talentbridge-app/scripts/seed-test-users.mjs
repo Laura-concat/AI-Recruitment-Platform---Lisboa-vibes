@@ -11,14 +11,14 @@ const TEST_USERS = [
   {
     firstName: "Test",
     lastName: "Candidate",
-    email: "testcandidate@example.com",
+    email: "tb-testcandidate@mailinator.com",
     password: "TalentBridge2026!",
     role: "candidate",
   },
   {
     firstName: "Test",
     lastName: "Client",
-    email: "testclient@example.com",
+    email: "tb-testclient@mailinator.com",
     password: "TalentBridge2026!",
     role: "client",
   },
