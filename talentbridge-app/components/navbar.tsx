@@ -42,11 +42,14 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <Link href="/dashboard" className="hover:text-[#1a3d2b]">Dashboard</Link>
               <Link href="/profile" className="hover:text-[#1a3d2b]">My Profile</Link>
-              <Link href="/profile#settings" className="hover:text-[#1a3d2b]">Settings</Link>
+              <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
-            <div className="w-9 h-9 rounded-full bg-[#1a3d2b] text-white flex items-center justify-center text-sm font-medium">
-              {userName?.[0] ?? "L"}
-            </div>
+            <Link
+              href="/onboarding/upload"
+              className="bg-[#1a3d2b] text-white text-sm px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Upload CV
+            </Link>
           </>
         )}
 
@@ -57,6 +60,7 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
               <Link href="/dashboard/client/jobs" className="hover:text-[#1a3d2b]">My Jobs</Link>
               <Link href="/dashboard/client/candidates" className="hover:text-[#1a3d2b]">Candidates</Link>
               <Link href="/dashboard/client/billing" className="hover:text-[#1a3d2b]">Billing</Link>
+              <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
               href="/jobs/new"

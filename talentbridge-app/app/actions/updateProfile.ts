@@ -6,6 +6,7 @@ import { candidateProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 interface ProfileUpdate {
+  fullName?: string;
   summary?: string;
   skills?: string[];
   languages?: string[];

@@ -6,6 +6,16 @@ import { useUser } from "@clerk/nextjs";
 import { Navbar } from "@/components/navbar";
 import { updateProfile } from "@/app/actions/updateProfile";
 
+function formatEducation(edu: unknown): string {
+  if (!edu) return "";
+  if (typeof edu === "string") return edu;
+  if (typeof edu === "object") {
+    const e = edu as { degree?: string; institution?: string; year?: number };
+    return [e.degree, e.institution, e.year].filter(Boolean).join(" — ");
+  }
+  return "";
+}
+
 interface ExperienceItem {
   role: string;
   company: string;
@@ -70,35 +80,67 @@ export default function CandidateProfilePage() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
   const [draft, setDraft] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   // Fetch real profile from DB on mount
   useEffect(() => {
     fetch("/api/profile")
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => {
+        if (!res.ok) { setHasProfile(false); return null; }
+        return res.json();
+      })
       .then((data) => {
         if (!data) return;
-        const name = user?.fullName ?? user?.firstName ?? INITIAL.name;
+        setHasProfile(true);
+        const name = data.fullName ?? user?.fullName ?? user?.firstName ?? INITIAL.name;
         const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+        const eduStr = formatEducation(data.education) || INITIAL.education;
+        const yrs = data.experienceYears ?? INITIAL.experienceYears;
         const merged: CandidateProfile = {
           ...INITIAL,
           name,
           initials,
+          experience: yrs ? `${yrs} yr${yrs !== 1 ? "s" : ""}` : INITIAL.experience,
           skills: data.skills?.length ? data.skills : INITIAL.skills,
           languages: data.languages?.length ? data.languages : INITIAL.languages,
           summary: data.summary ?? INITIAL.summary,
-          education: typeof data.education === "string" ? data.education : INITIAL.education,
+          education: eduStr,
           experience_items: Array.isArray(data.experienceItems) && data.experienceItems.length
             ? data.experienceItems
             : INITIAL.experience_items,
-          experienceYears: data.experienceYears ?? INITIAL.experienceYears,
+          experienceYears: yrs,
           experienceLevel: data.seniorityLevel ?? INITIAL.experienceLevel,
           languageProficiency: data.languages?.join(" & ") || INITIAL.languageProficiency,
         };
         setProfile(createProfileDraft(merged));
         setDraft(createProfileDraft(merged));
       })
-      .catch(() => {/* keep INITIAL data on error */});
+      .catch(() => setHasProfile(false));
   }, [user]);
+
+  if (hasProfile === false) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar variant="candidate" />
+        <div className="mx-auto max-w-4xl px-6 py-20 flex flex-col items-center text-center">
+          <div className="text-6xl mb-6">📄</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome{user?.firstName ? `, ${user.firstName}` : ""}!
+          </h1>
+          <p className="text-gray-500 mb-8 max-w-md text-sm">
+            Upload your CV and our AI will automatically build your profile — extracting your skills,
+            experience, languages, and more.
+          </p>
+          <Link
+            href="/onboarding/upload"
+            className="bg-[#1a3d2b] text-white px-6 py-3 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            Upload your CV to get started →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   function startEdit() {
     setDraft(createProfileDraft(profile));
@@ -114,6 +156,7 @@ export default function CandidateProfilePage() {
     setSaving(true);
     try {
       await updateProfile({
+        fullName: draft.name,
         summary: draft.summary,
         skills: draft.skills,
         languages: draft.languages,

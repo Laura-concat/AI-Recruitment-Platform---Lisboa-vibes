@@ -59,7 +59,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 // ─── Tables ───────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey(), // matches Clerk user ID
+  id: text("id").primaryKey(), // Clerk user ID (e.g. user_abc123)
   email: text("email").notNull().unique(),
   role: roleEnum("role").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -70,9 +70,10 @@ export const candidateProfiles = pgTable(
   "candidate_profiles",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    fullName: text("full_name"),
     skills: text("skills").array().notNull().default([]),
     experienceYears: integer("experience_years"),
     seniorityLevel: seniorityEnum("seniority_level"),
@@ -97,7 +98,7 @@ export const cvs = pgTable(
   "cvs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     fileUrl: text("file_url").notNull(),
@@ -114,7 +115,7 @@ export const jobs = pgTable(
   "jobs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
@@ -161,7 +162,7 @@ export const subscriptions = pgTable(
   "subscriptions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     stripeCustomerId: text("stripe_customer_id").notNull(),

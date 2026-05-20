@@ -1,17 +1,26 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { cvs } from "@/lib/db/schema";
+import { cvs, users, candidateProfiles } from "@/lib/db/schema";
 import { eq, and, gt, count } from "drizzle-orm";
 import { put } from "@/lib/blob";
 import { inngest } from "@/lib/inngest/client";
+import { extractTextFromBuffer, parseProfileFromText } from "@/lib/cv-parser";
 
 const DAILY_LIMIT = 3;
 
 export async function uploadCv(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
+
+  // Ensure user row exists in DB (Clerk webhook may not be configured yet)
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses[0]?.emailAddress;
+  if (email) {
+    const role = (clerkUser?.unsafeMetadata?.role as string) === "client" ? "client" : "candidate";
+    await db.insert(users).values({ id: userId, email, role }).onConflictDoNothing();
+  }
 
   const file = formData.get("file") as File | null;
   if (!file) return { error: "No file provided" };
@@ -44,24 +53,54 @@ export async function uploadCv(formData: FormData) {
     return { error: "File storage is not configured yet. Please add BLOB_READ_WRITE_TOKEN to your environment." };
   }
 
+  // Extract text and parse profile fields before uploading (while we still have the File object)
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const text = await extractTextFromBuffer(buffer, file.type);
+  const parsed = text ? parseProfileFromText(text) : null;
+
   // Upload to Vercel Blob (private)
   const blob = await put(`cvs/${userId}/${Date.now()}-${file.name}`, file, {
-    access: "public", // Vercel Blob free tier requires public; use private with paid plan
+    access: "private",
     addRandomSuffix: true,
   });
 
   // Create CV record
   const [cv] = await db
     .insert(cvs)
-    .values({ userId, fileUrl: blob.url, status: "pending" })
+    .values({ userId, fileUrl: blob.url, status: parsed ? "complete" : "pending" })
     .returning({ id: cvs.id });
 
-  // Fire Inngest event to trigger AI analysis (queues up when Inngest keys are added)
+  // Upsert candidate profile with parsed data
+  if (parsed) {
+    const profileData = {
+      fullName: parsed.fullName ?? undefined,
+      skills: parsed.skills,
+      languages: parsed.languages,
+      experienceYears: parsed.experienceYears ?? undefined,
+      seniorityLevel: parsed.seniorityLevel ?? undefined,
+      experienceItems: parsed.experienceItems.length ? parsed.experienceItems : undefined,
+      education: parsed.education ?? undefined,
+      summary: parsed.summary ?? undefined,
+      updatedAt: new Date(),
+    };
+    const existing = await db
+      .select({ id: candidateProfiles.id })
+      .from(candidateProfiles)
+      .where(eq(candidateProfiles.userId, userId))
+      .limit(1);
+    if (existing.length > 0) {
+      await db.update(candidateProfiles).set(profileData).where(eq(candidateProfiles.userId, userId));
+    } else {
+      await db.insert(candidateProfiles).values({ userId, ...profileData });
+    }
+  }
+
+  // Fire Inngest event for AI analysis when keys are available
   try {
     await inngest.send({ name: "cv/upload.received", data: { cvId: cv.id } });
   } catch {
-    // Inngest not yet configured — analysis will need to be triggered manually
+    // Inngest not yet configured
   }
 
-  return { cvId: cv.id, status: "processing" };
+  return { cvId: cv.id, status: parsed ? "complete" : "processing" };
 }

@@ -1,14 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs/legacy";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const { isLoaded, signIn, setActive } = useSignIn();
   const [role, setRole] = useState<"candidate" | "client">("candidate");
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const savedRole = user.unsafeMetadata?.role as string | undefined;
+      router.replace(savedRole === "client" ? "/dashboard/client" : "/dashboard");
+    }
+  }, [isSignedIn, user, router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +36,8 @@ export default function LoginPage() {
         router.push(role === "client" ? "/dashboard/client" : "/dashboard");
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Sign in failed. Please check your credentials.";
+      const clerkErr = err as { errors?: { message: string }[] };
+      const msg = clerkErr.errors?.[0]?.message ?? "Sign in failed. Please check your credentials.";
       setError(msg);
     } finally {
       setLoading(false);

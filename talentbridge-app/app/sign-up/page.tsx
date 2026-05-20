@@ -1,16 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs/legacy";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 type Step = "role" | "form" | "verify";
 type Role = "developer" | "client";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const { isLoaded, signUp, setActive } = useSignUp();
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const role = user.unsafeMetadata?.role as string | undefined;
+      router.replace(role === "client" ? "/dashboard/client" : "/dashboard");
+    }
+  }, [isSignedIn, user, router]);
 
   const [step, setStep] = useState<Step>("role");
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
