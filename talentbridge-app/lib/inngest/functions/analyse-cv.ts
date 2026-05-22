@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { cvs, candidateProfiles } from "@/lib/db/schema";
 import { uploadCvToFiles, extractCvData } from "@/lib/claude";
 import { generateEmbedding } from "@/lib/voyage";
+import { yearsFromExperienceItems } from "@/lib/cv-parser";
 
 export const analyseCV = inngest.createFunction(
   {
@@ -49,9 +50,13 @@ export const analyseCV = inngest.createFunction(
         .from(candidateProfiles)
         .where(eq(candidateProfiles.userId, cv.userId));
 
+      // Prefer years computed from actual date ranges over Claude's self-reported value
+      const computedYears = yearsFromExperienceItems(extraction.experience_items ?? []);
+      const experienceYears = computedYears ?? extraction.experience_years ?? null;
+
       const profileData = {
         skills: extraction.skills ?? [],
-        experienceYears: extraction.experience_years ?? null,
+        experienceYears,
         seniorityLevel: extraction.seniority_level ?? null,
         languages: extraction.languages ?? [],
         experienceItems: extraction.experience_items ?? [],

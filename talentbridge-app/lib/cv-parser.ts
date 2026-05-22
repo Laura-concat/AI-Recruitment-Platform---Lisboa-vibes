@@ -393,7 +393,7 @@ function parsePeriodMonths(period: string): number {
   return 0;
 }
 
-function yearsFromExperienceItems(
+export function yearsFromExperienceItems(
   items: { role: string; company: string; period: string }[]
 ): number | null {
   if (!items.length) return null;
