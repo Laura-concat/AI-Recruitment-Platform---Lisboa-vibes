@@ -8,7 +8,7 @@ import { put } from "@/lib/blob";
 import { inngest } from "@/lib/inngest/client";
 import { extractTextFromBuffer, parseProfileFromText } from "@/lib/cv-parser";
 
-const DAILY_LIMIT = 3;
+const DAILY_LIMIT = process.env.NODE_ENV === "development" ? 50 : 3;
 
 export async function uploadCv(formData: FormData) {
   const { userId } = await auth();
