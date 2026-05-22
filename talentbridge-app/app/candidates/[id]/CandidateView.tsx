@@ -4,31 +4,74 @@ import Link from "next/link";
 import { useState } from "react";
 import { Navbar } from "@/components/navbar";
 
-const candidate = {
-  name: "Leila Mansour",
-  initials: "LM",
-  title: "Full-Stack Developer · 5 yrs · Beirut, Lebanon · Remote-ready · Bilingual Arabic/English",
-  matchScore: 94,
-  matchExplanation:
-    "Leila's 5 years in React and Node.js aligns perfectly with your stack. Her bilingual Arabic/English background is ideal for your MENA-focused clients, and her Fintech background matches your industry.",
-  skills: ["React", "TypeScript", "Python", "PostgreSQL", "Docker", "AWS"],
-  experienceLevel: "Senior",
-  experienceYears: "5",
-  languageFit: "Arabic & English",
-  education: "BSc",
-  summary:
-    "Experienced full-stack developer with 5 years in Fintech & e-commerce across MENA. Bilingual Arabic/English.",
-  experience: [
-    { role: "Senior Frontend Dev", company: "Fintech Startup, Beirut", period: "2022–Present" },
-    { role: "Full-Stack Developer", company: "E-commerce Agency, Amman", period: "2019–2022" },
-  ],
-  education_detail: "BSc Computer Science — AUB, 2019",
-  availability: "Full-time · Remote · From June 2026",
-};
+interface ExperienceItem {
+  role: string;
+  company: string;
+  period: string;
+}
 
-export default function CandidateView() {
+interface Education {
+  degree: string;
+  institution: string;
+  year?: number;
+}
+
+interface Props {
+  matchId: string;
+  matchScore: number;
+  matchExplanation: string | null;
+  jobTitle: string;
+  jobId: string;
+  fullName: string | null;
+  skills: string[];
+  experienceYears: number | null;
+  seniorityLevel: string | null;
+  languages: string[];
+  summary: string | null;
+  experienceItems: ExperienceItem[] | null;
+  education: Education | string | null;
+}
+
+function formatEducation(edu: Education | string | null): string {
+  if (!edu) return "";
+  if (typeof edu === "string") return edu;
+  return [edu.degree, edu.institution, edu.year].filter(Boolean).join(" — ");
+}
+
+function initials(name: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+export default function CandidateView({
+  matchScore,
+  matchExplanation,
+  jobTitle,
+  jobId,
+  fullName,
+  skills,
+  experienceYears,
+  seniorityLevel,
+  languages,
+  summary,
+  experienceItems,
+  education,
+}: Props) {
   const [verdict, setVerdict] = useState<"fit" | "not-fit" | null>(null);
   const [introSent, setIntroSent] = useState(false);
+
+  const name = fullName ?? "Anonymous Candidate";
+  const eduStr = formatEducation(education);
+  const levelLabel = seniorityLevel
+    ? seniorityLevel.charAt(0).toUpperCase() + seniorityLevel.slice(1)
+    : null;
+  const subtitle = [
+    levelLabel,
+    experienceYears ? `${experienceYears} yr${experienceYears !== 1 ? "s" : ""}` : null,
+    languages.length ? languages.join(" & ") : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,32 +79,34 @@ export default function CandidateView() {
 
       <div className="mx-auto max-w-5xl px-6 py-10">
         <div className="text-sm text-gray-400 mb-4">
-          <Link href="/jobs/1/matches" className="hover:text-[#1a3d2b]">Back to matches</Link>
+          <Link href={`/jobs/${jobId}/matches`} className="hover:text-[#1a3d2b]">
+            Back to {jobTitle} matches
+          </Link>
           {" / "}
-          <span>Leila Mansour</span>
+          <span>{name}</span>
           {" / "}
-          <span>94% match</span>
+          <span>{matchScore}% match</span>
         </div>
 
         {introSent && (
           <div className="mb-4 bg-[#f0fdf4] border border-[#bbf7d0] text-[#1a3d2b] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
-            <span>✓</span> Introduction request sent to Leila Mansour. We&apos;ll be in touch within 24 hours.
+            <span>✓</span> Introduction request sent for {name}. We&apos;ll be in touch within 24 hours.
           </div>
         )}
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Left: AI analysis */}
+          {/* Left: AI analysis + actions */}
           <div className="md:col-span-1 space-y-4">
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-[#1a3d2b] text-white flex items-center justify-center font-bold">
-                  {candidate.initials}
+                  {initials(fullName)}
                 </div>
                 <div>
-                  <h1 className="font-bold text-gray-900">{candidate.name}</h1>
+                  <h1 className="font-bold text-gray-900">{name}</h1>
+                  {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mb-4">{candidate.title}</p>
               <button
                 onClick={() => setIntroSent(true)}
                 disabled={introSent}
@@ -77,31 +122,35 @@ export default function CandidateView() {
                   AI Match Analysis
                 </span>
               </div>
-              <div className="text-5xl font-bold text-[#1a3d2b] mb-1">{candidate.matchScore}%</div>
+              <div className="text-5xl font-bold text-[#1a3d2b] mb-1">{matchScore}%</div>
               <p className="text-xs text-gray-400 mb-4">AI fit score for this role</p>
 
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex justify-between">
-                  <span>Technical Skills</span>
-                  <span className="font-medium">9/10</span>
-                </div>
-                <div className="flex justify-between">
                   <span>Experience Level</span>
-                  <span className="font-medium">{candidate.experienceLevel}</span>
+                  <span className="font-medium">{levelLabel ?? "—"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Language Fit</span>
-                  <span className="font-medium">{candidate.languageFit}</span>
+                  <span>Years exp.</span>
+                  <span className="font-medium">
+                    {experienceYears != null ? `${experienceYears} yr${experienceYears !== 1 ? "s" : ""}` : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Languages</span>
+                  <span className="font-medium">{languages.length ? languages.join(" & ") : "—"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Education</span>
-                  <span className="font-medium">{candidate.education}</span>
+                  <span className="font-medium">{eduStr ? eduStr.split("—")[0].trim() : "—"}</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500 leading-relaxed">{candidate.matchExplanation}</p>
-              </div>
+              {matchExplanation && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 leading-relaxed">{matchExplanation}</p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
@@ -132,48 +181,70 @@ export default function CandidateView() {
             </div>
           </div>
 
-          {/* Right: Profile details */}
+          {/* Right: Full profile */}
           <div className="md:col-span-2 space-y-4">
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-2">Summary</h3>
-              <p className="text-sm text-gray-600">{candidate.summary}</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
-              <div className="flex flex-wrap gap-2">
-                {candidate.skills.map((skill) => (
-                  <span key={skill} className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-1 rounded-md">
-                    {skill}
-                  </span>
-                ))}
+            {summary && (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-2">Summary</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{summary}</p>
               </div>
-            </div>
+            )}
 
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">Experience</h3>
-              <div className="space-y-3">
-                {candidate.experience.map((exp) => (
-                  <div key={exp.role} className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{exp.role}</p>
-                      <p className="text-xs text-gray-500">{exp.company}</p>
+            {skills.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3">Skills</h3>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-1 rounded-md"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(experienceItems) && experienceItems.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-3">Experience</h3>
+                <div className="space-y-4">
+                  {experienceItems.map((exp, i) => (
+                    <div key={i} className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{exp.role}</p>
+                        <p className="text-xs text-gray-500">{exp.company}</p>
+                      </div>
+                      <span className="text-xs text-gray-400 shrink-0 ml-4">{exp.period}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{exp.period}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-2">Education</h3>
-              <p className="text-sm text-gray-600">{candidate.education_detail}</p>
-            </div>
+            {eduStr && (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-2">Education</h3>
+                <p className="text-sm text-gray-600">{eduStr}</p>
+              </div>
+            )}
 
-            <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-2">Availability</h3>
-              <p className="text-sm text-gray-600">{candidate.availability}</p>
-            </div>
+            {languages.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-2">Languages</h3>
+                <div className="flex gap-2">
+                  {languages.map((lang) => (
+                    <span
+                      key={lang}
+                      className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-md"
+                    >
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
