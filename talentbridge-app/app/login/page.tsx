@@ -19,12 +19,14 @@ export default function LoginPage() {
     const ticket = searchParams.get("__clerk_ticket");
     if (!ticket || !isLoaded || !signIn) return;
 
+    const destination = searchParams.get("to") ?? "/dashboard";
+
     signIn
       .create({ strategy: "ticket", ticket })
       .then(async (result) => {
         if (result.status === "complete") {
           await setActive({ session: result.createdSessionId });
-          router.push("/dashboard");
+          router.push(destination);
         }
       })
       .catch((err) => {

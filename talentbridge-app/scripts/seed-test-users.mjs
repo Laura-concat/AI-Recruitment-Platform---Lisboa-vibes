@@ -11,14 +11,14 @@ const TEST_USERS = [
   {
     firstName: "Test",
     lastName: "Candidate",
-    email: "tb-testcandidate@mailinator.com",
+    email: "laura+testcandidate@concat.tech",
     password: "TalentBridge2026!",
     role: "candidate",
   },
   {
     firstName: "Test",
     lastName: "Client",
-    email: "tb-testclient@mailinator.com",
+    email: "laura+testclient@concat.tech",
     password: "TalentBridge2026!",
     role: "client",
   },
@@ -61,12 +61,12 @@ console.log(`
 ✅ Test users ready
 
   Candidate
-    Email:    test.candidate@talentbridge.dev
+    Email:    laura+testcandidate@concat.tech
     Password: TalentBridge2026!
     Route:    /dashboard
 
   Client
-    Email:    test.client@talentbridge.dev
+    Email:    laura+testclient@concat.tech
     Password: TalentBridge2026!
     Route:    /dashboard/client
 `);
