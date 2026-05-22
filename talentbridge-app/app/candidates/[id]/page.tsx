@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { matches, candidateProfiles, jobs } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { getSubscriptionStatus } from "@/lib/subscription";
-import { UpgradePrompt, PastDueBanner } from "@/components/upgrade-prompt";
 import CandidateView from "./CandidateView";
 
 export default async function ClientCandidateViewPage({
@@ -14,11 +12,6 @@ export default async function ClientCandidateViewPage({
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/login");
-
-  const sub = await getSubscriptionStatus(userId);
-  if (!sub.isActive && !sub.isPastDue) {
-    return <UpgradePrompt returnPath="/dashboard/client" />;
-  }
 
   const { id: matchId } = await params;
 
@@ -47,7 +40,6 @@ export default async function ClientCandidateViewPage({
 
   return (
     <>
-      {sub.isPastDue && <PastDueBanner />}
       <CandidateView
         matchId={matchId}
         matchScore={Math.round(row.matchScore)}
