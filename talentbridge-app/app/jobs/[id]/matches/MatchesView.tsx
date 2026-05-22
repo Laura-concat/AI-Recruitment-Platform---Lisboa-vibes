@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import type { MatchRow } from "./page";
+import { triggerMatching } from "@/app/actions/triggerMatching";
 
 type FeedbackState = "good" | "not-fit" | "intro-sent" | null;
 
@@ -148,6 +150,22 @@ interface Props {
 }
 
 export default function MatchesView({ job, matchRows }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [matchError, setMatchError] = useState<string | null>(null);
+
+  function runMatching() {
+    setMatchError(null);
+    startTransition(async () => {
+      const result = await triggerMatching(job.id);
+      if (result.ok) {
+        router.refresh();
+      } else {
+        setMatchError(result.error ?? "Matching failed");
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar variant="client" />
@@ -167,18 +185,27 @@ export default function MatchesView({ job, matchRows }: Props) {
           AI-Matched Candidates — {job.title}
         </h1>
 
-        {job.status === "matching" ? (
+        {job.status === "matching" || isPending ? (
           <div className="mt-8 bg-white border border-gray-200 rounded-xl p-10 text-center">
             <div className="w-8 h-8 rounded-full border-2 border-[#1a3d2b] border-t-transparent animate-spin mx-auto mb-4" />
-            <p className="text-sm text-gray-500">AI matching in progress — check back in a moment.</p>
+            <p className="text-sm text-gray-500">Matching in progress — this will only take a moment.</p>
           </div>
         ) : matchRows.length === 0 ? (
           <div className="mt-8 bg-white border border-gray-200 rounded-xl p-10 text-center">
             <div className="text-4xl mb-3">🔍</div>
             <p className="text-sm font-medium text-gray-700 mb-1">No matches yet</p>
-            <p className="text-xs text-gray-400">
-              Matches will appear here once the AI pipeline has run.
+            <p className="text-xs text-gray-400 mb-6">
+              Run the matcher to find the best candidates for this role.
             </p>
+            {matchError && (
+              <p className="text-xs text-red-500 mb-4">{matchError}</p>
+            )}
+            <button
+              onClick={runMatching}
+              className="bg-[#1a3d2b] text-white text-sm px-6 py-2.5 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Find Matches →
+            </button>
           </div>
         ) : (
           <>
