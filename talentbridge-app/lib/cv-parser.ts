@@ -349,6 +349,61 @@ function extractLanguages(text: string): string[] {
 
 // ─── Experience years ──────────────────────────────────────────────────────────
 
+function parsePeriodMonths(period: string): number {
+  const now = new Date();
+  const nowYear = now.getFullYear();
+  const nowMonth = now.getMonth();
+
+  // Normalise separators
+  const norm = period.replace(/\s*[–—]\s*/g, " – ").trim();
+
+  // "Month YYYY – Month YYYY/Present"
+  const fullRe = new RegExp(
+    `(${MONTH_PAT})\\s+(\\d{4})\\s*[–—-]\\s*(${MONTH_PAT}\\s+\\d{4}|Present|Current|Now|Ongoing|\\d{4})`,
+    "i"
+  );
+  const fullMatch = norm.match(fullRe);
+  if (fullMatch) {
+    const startMonth = parseMonth(fullMatch[1]);
+    const startYear = parseInt(fullMatch[2], 10);
+    const endStr = fullMatch[3];
+    let endYear: number, endMonth: number;
+    if (/present|current|now|ongoing/i.test(endStr)) {
+      endYear = nowYear; endMonth = nowMonth;
+    } else if (/^\d{4}$/.test(endStr.trim())) {
+      endYear = parseInt(endStr, 10); endMonth = 11;
+    } else {
+      const em = endStr.match(/([A-Za-z]+)\s+(\d{4})/);
+      if (!em) return 0;
+      endMonth = parseMonth(em[1]); endYear = parseInt(em[2], 10);
+    }
+    return Math.max(0, (endYear - startYear) * 12 + (endMonth - startMonth));
+  }
+
+  // "YYYY – YYYY/Present" (year-only)
+  const yearRe = /(\d{4})\s*[–—-]\s*(\d{4}|Present|Current|Now|Ongoing)/i;
+  const yearMatch = norm.match(yearRe);
+  if (yearMatch) {
+    const startYear = parseInt(yearMatch[1], 10);
+    const endStr = yearMatch[2];
+    const endYear = /present|current|now|ongoing/i.test(endStr) ? nowYear : parseInt(endStr, 10);
+    return Math.max(0, (endYear - startYear) * 12);
+  }
+
+  return 0;
+}
+
+function yearsFromExperienceItems(
+  items: { role: string; company: string; period: string }[]
+): number | null {
+  if (!items.length) return null;
+  let totalMonths = 0;
+  for (const item of items) {
+    totalMonths += parsePeriodMonths(item.period);
+  }
+  return totalMonths > 0 ? Math.round(totalMonths / 12) : null;
+}
+
 function extractExperienceYears(text: string): number | null {
   const explicit = [
     // "X years of [professional] experience"
@@ -371,35 +426,29 @@ function extractExperienceYears(text: string): number | null {
     if (m) return parseInt(m[1], 10);
   }
 
-  // Sum year ranges
-  const now = new Date().getFullYear();
+  // Sum date ranges in the provided text (should be experience section only)
+  const now = new Date();
   let totalMonths = 0;
-  const rangeRe = new RegExp(`(${DATE_PAT})\\s*[–—-]\\s*(${DATE_PAT}|Present|Current|Now|Ongoing)`, "gi");
-  let m: RegExpExecArray | null;
-  while ((m = rangeRe.exec(text)) !== null) {
-    const startYearMatch = m[1].match(/\d{4}/);
-    const endStr = m[2];
-    if (!startYearMatch) continue;
-    const startYear = parseInt(startYearMatch[0], 10);
-    const startMonthMatch = m[1].match(/[A-Za-z]+/);
-    const startMonth = startMonthMatch ? parseMonth(startMonthMatch[0]) : 0;
 
-    let endYear: number;
-    let endMonth: number;
-    if (/present|current|now|ongoing/i.test(endStr)) {
-      endYear = now;
-      endMonth = new Date().getMonth();
-    } else {
-      const endYearMatch = endStr.match(/\d{4}/);
-      const endMonthMatch = endStr.match(/[A-Za-z]+/);
-      if (!endYearMatch) continue;
-      endYear = parseInt(endYearMatch[0], 10);
-      endMonth = endMonthMatch ? parseMonth(endMonthMatch[0]) : 11;
-    }
-    totalMonths += Math.max(0, (endYear - startYear) * 12 + (endMonth - startMonth));
+  // Month + year ranges: "Jan 2020 – Present"
+  const fullRangeRe = new RegExp(
+    `(${DATE_PAT})\\s*[–—-]\\s*(${DATE_PAT}|Present|Current|Now|Ongoing)`,
+    "gi"
+  );
+  let m: RegExpExecArray | null;
+  while ((m = fullRangeRe.exec(text)) !== null) {
+    totalMonths += parsePeriodMonths(`${m[1]} – ${m[2]}`);
   }
-  if (totalMonths > 0) return Math.round(totalMonths / 12);
-  return null;
+
+  // Year-only ranges: "2020 – 2023" or "2020 – Present" (only if no month ranges found)
+  if (totalMonths === 0) {
+    const yearRangeRe = /\b(\d{4})\s*[–—-]\s*(\d{4}|Present|Current|Now|Ongoing)\b/gi;
+    while ((m = yearRangeRe.exec(text)) !== null) {
+      totalMonths += parsePeriodMonths(`${m[1]} – ${m[2]}`);
+    }
+  }
+
+  return totalMonths > 0 ? Math.round(totalMonths / 12) : null;
 }
 
 function parseMonth(monthStr: string): number {
@@ -432,7 +481,10 @@ export function parseProfileFromText(text: string): ParsedProfile {
   const languages = extractLanguages(text);
   const experienceItems = extractExperienceItems(expSection || text);
   const education = extractEducation(eduSection || text);
-  const experienceYears = extractExperienceYears(expSection || text);
+  // Derive years from already-parsed items first (more accurate — avoids education dates);
+  // fall back to text-scan for CVs where period parsing didn't extract items.
+  const experienceYears =
+    yearsFromExperienceItems(experienceItems) ?? extractExperienceYears(expSection || text);
   const seniorityLevel = inferSeniority(experienceYears);
 
   return { fullName, summary, skills, languages, experienceYears, seniorityLevel, experienceItems, education };
