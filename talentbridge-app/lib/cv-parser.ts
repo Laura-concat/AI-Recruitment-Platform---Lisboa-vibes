@@ -479,12 +479,12 @@ export function parseProfileFromText(text: string): ParsedProfile {
   const summary = extractSummary(summarySection);
   const skills = extractSkills(text);
   const languages = extractLanguages(text);
-  const experienceItems = extractExperienceItems(expSection || text);
+  // Only scan the experience section — falling back to full text picks up education dates
+  const experienceItems = extractExperienceItems(expSection);
   const education = extractEducation(eduSection || text);
-  // Derive years from already-parsed items first (more accurate — avoids education dates);
-  // fall back to text-scan for CVs where period parsing didn't extract items.
+  // Derive years from already-parsed items first; fall back to explicit phrases in exp section
   const experienceYears =
-    yearsFromExperienceItems(experienceItems) ?? extractExperienceYears(expSection || text);
+    yearsFromExperienceItems(experienceItems) ?? extractExperienceYears(expSection);
   const seniorityLevel = inferSeniority(experienceYears);
 
   return { fullName, summary, skills, languages, experienceYears, seniorityLevel, experienceItems, education };
