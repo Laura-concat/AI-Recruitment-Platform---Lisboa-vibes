@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { jobs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Navbar } from "@/components/navbar";
+import { getSubscriptionStatus } from "@/lib/subscription";
+import { createPortalSession } from "@/app/actions/createPortalSession";
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -18,38 +20,87 @@ function timeAgo(date: Date): string {
   return `${weeks} week${weeks !== 1 ? "s" : ""} ago`;
 }
 
-export default async function ClientDashboardPage() {
+export default async function ClientDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ subscription?: string }>;
+}) {
   const { userId } = await auth();
+  const params = await searchParams;
+  const subscriptionSuccess = params.subscription === "success";
 
-  const activeJobs = userId
-    ? await db
-        .select({
-          id: jobs.id,
-          title: jobs.title,
-          status: jobs.status,
-          requirements: jobs.requirements,
-          applyDeadline: jobs.applyDeadline,
-          createdAt: jobs.createdAt,
-        })
-        .from(jobs)
-        .where(eq(jobs.userId, userId))
-        .orderBy(desc(jobs.createdAt))
-        .limit(20)
-    : [];
+  const [sub, activeJobs_] = await Promise.all([
+    userId ? getSubscriptionStatus(userId) : Promise.resolve(null),
+    userId
+      ? db
+          .select({
+            id: jobs.id,
+            title: jobs.title,
+            status: jobs.status,
+            requirements: jobs.requirements,
+            applyDeadline: jobs.applyDeadline,
+            createdAt: jobs.createdAt,
+          })
+          .from(jobs)
+          .where(eq(jobs.userId, userId))
+          .orderBy(desc(jobs.createdAt))
+          .limit(20)
+      : Promise.resolve([]),
+  ]);
 
+  const activeJobs = activeJobs_;
   const jobCount = activeJobs.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar variant="client" />
 
+      {sub?.isPastDue && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center justify-between">
+          <span>Your last payment failed. Please update your payment method to keep access.</span>
+          <form action={createPortalSession}>
+            <button type="submit" className="ml-4 text-xs font-medium underline hover:no-underline">
+              Manage billing →
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="mx-auto max-w-5xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Welcome back 👋</h1>
-        <p className="text-sm text-gray-500 mb-8">
-          {jobCount > 0
-            ? `${jobCount} active job posting${jobCount !== 1 ? "s" : ""}. Here's your activity at a glance.`
-            : "Post your first job to start matching with top developers."}
-        </p>
+        {subscriptionSuccess && (
+          <div className="mb-6 bg-[#f0fdf4] border border-[#bbf7d0] text-[#1a3d2b] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
+            <span>✓</span> Subscription activated! You now have full access to candidate profiles and match results.
+          </div>
+        )}
+
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-0.5">Welcome back 👋</h1>
+            <p className="text-sm text-gray-500">
+              {jobCount > 0
+                ? `${jobCount} active job posting${jobCount !== 1 ? "s" : ""}. Here's your activity at a glance.`
+                : "Post your first job to start matching with top developers."}
+            </p>
+          </div>
+          {sub?.isActive && (
+            <form action={createPortalSession}>
+              <button
+                type="submit"
+                className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Manage subscription
+              </button>
+            </form>
+          )}
+          {!sub?.isActive && !sub?.isPastDue && (
+            <Link
+              href="/pricing"
+              className="text-xs bg-[#1a3d2b] text-white px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Subscribe to access talent →
+            </Link>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">

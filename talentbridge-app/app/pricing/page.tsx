@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
+import { CheckoutButton } from "@/components/checkout-button";
 
 const plans = [
   {
@@ -16,7 +17,7 @@ const plans = [
       "No shortlisting service",
     ],
     cta: "Get Started",
-    ctaHref: "/sign-up",
+    plan: "basic" as const,
     popular: false,
   },
   {
@@ -35,7 +36,7 @@ const plans = [
       "30-day money-back guarantee",
     ],
     cta: "Start Hiring Now →",
-    ctaHref: "/sign-up",
+    plan: "pro" as const,
     popular: true,
   },
   {
@@ -105,16 +106,24 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href={plan.ctaHref}
-                className={`block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 ${
-                  plan.popular
-                    ? "bg-[#1a3d2b] text-white"
-                    : "border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
-                }`}
-              >
-                {plan.cta}
-              </Link>
+              {plan.plan ? (
+                <CheckoutButton
+                  plan={plan.plan}
+                  label={plan.cta}
+                  className={`block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60 ${
+                    plan.popular
+                      ? "bg-[#1a3d2b] text-white"
+                      : "border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
+                  }`}
+                />
+              ) : (
+                <Link
+                  href={"ctaHref" in plan ? plan.ctaHref : "/pricing"}
+                  className="block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
+                >
+                  {plan.cta}
+                </Link>
+              )}
             </div>
           ))}
         </div>
