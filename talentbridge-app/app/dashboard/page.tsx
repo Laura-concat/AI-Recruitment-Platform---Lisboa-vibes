@@ -1,37 +1,12 @@
 import Link from "next/link";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { candidateProfiles } from "@/lib/db/schema";
+import { candidateProfiles, matches, jobs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { Navbar } from "@/components/navbar";
 import { redirect } from "next/navigation";
+import { JobMatchCard } from "@/components/job-match-card";
 
-const jobMatches = [
-  {
-    id: "1",
-    title: "Senior React Developer",
-    company: "Dubai FinTech Co.",
-    type: "Full-time · Remote · Dubai, UAE",
-    score: 94,
-    scoreColor: "bg-[#1a3d2b]",
-  },
-  {
-    id: "2",
-    title: "Full-Stack Engineer",
-    company: "Riyadh SaaS Startup",
-    type: "Full-time · Hybrid · Riyadh, KSA",
-    score: 88,
-    scoreColor: "bg-[#16a34a]",
-  },
-  {
-    id: "3",
-    title: "React Native Developer",
-    company: "Berlin Tech Co. (EU)",
-    type: "Contract · Remote · Berlin, Germany",
-    score: 80,
-    scoreColor: "bg-amber-500",
-  },
-];
 
 function calcCompleteness(p: {
   fullName: string | null;
@@ -72,6 +47,38 @@ export default async function CandidateDashboardPage() {
         experienceItems: candidateProfiles.experienceItems,
       }).from(candidateProfiles).where(eq(candidateProfiles.userId, userId)).limit(1))[0] ?? null
     : null;
+
+  // Fetch real AI matches for this candidate (if any)
+  const jobMatchRows = profile
+    ? await db
+        .select({
+          matchId: matches.id,
+          matchScore: matches.matchScore,
+          jobId: jobs.id,
+          jobTitle: jobs.title,
+          jobDescription: jobs.description,
+          jobRequirements: jobs.requirements,
+        })
+        .from(matches)
+        .innerJoin(jobs, eq(matches.jobId, jobs.id))
+        .where(eq(matches.candidateProfileId, profile.id))
+        .orderBy(matches.matchScore)
+        .limit(10)
+    : [];
+
+  const jobMatches = jobMatchRows.map((row) => {
+    const reqs = row.jobRequirements as { skills?: string[]; employmentType?: string; location?: string } | null;
+    const typeParts = [reqs?.employmentType, reqs?.location].filter(Boolean);
+    return {
+      id: row.matchId,
+      title: row.jobTitle,
+      company: "", // client company not exposed to candidate for privacy
+      type: typeParts.join(" · "),
+      score: Math.round(row.matchScore),
+      description: row.jobDescription,
+      skills: reqs?.skills ?? [],
+    };
+  });
 
   const hasProfile = !!profile;
   const firstName = profile?.fullName?.split(" ")[0] ?? null;
@@ -133,24 +140,23 @@ export default async function CandidateDashboardPage() {
         {/* Job Matches */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Job Matches</h2>
-          <div className="space-y-3">
-            {jobMatches.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center justify-between"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900">{job.title} — {job.company}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{job.type}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`${job.scoreColor} text-white text-xs font-bold px-2.5 py-1 rounded-full`}>
-                    {job.score}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {jobMatches.length > 0 ? (
+            <div className="space-y-3">
+              {jobMatches.map((job) => (
+                <JobMatchCard key={job.id} job={job} />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
+              <div className="text-4xl mb-3">🔍</div>
+              <p className="text-sm font-medium text-gray-700 mb-1">No matches yet</p>
+              <p className="text-xs text-gray-400">
+                {hasProfile
+                  ? "You'll be matched automatically when clients post relevant jobs."
+                  : "Upload your CV first to start getting matched with jobs."}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* View client dashboard link */}

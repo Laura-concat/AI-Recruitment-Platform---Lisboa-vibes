@@ -351,10 +351,20 @@ function extractLanguages(text: string): string[] {
 
 function extractExperienceYears(text: string): number | null {
   const explicit = [
-    /(\d+)\+?\s*years?\s+of\s+(?:professional\s+)?experience/i,
-    /(\d+)\+?\s*yrs?\s+of\s+experience/i,
+    // "X years of [professional] experience"
+    /(\d+)\+?\s*years?\s+of\s+(?:professional\s+|industry\s+)?experience/i,
+    // "X years experience [in/as/...]" — no "of"
+    /(\d+)\+?\s*years?\s+experience(?:\s+(?:in|as|with|at|of)\b)?/i,
+    // "X yrs of experience" / "X yrs experience"
+    /(\d+)\+?\s*yrs?\s+(?:of\s+)?experience/i,
+    // "experience of X years"
     /experience\s+of\s+(\d+)\+?\s*years?/i,
-    /over\s+(\d+)\s*years?\s+(?:of\s+)?experience/i,
+    // "over/more than X years"
+    /(?:over|more\s+than|nearly|almost)\s+(\d+)\s*years?\s+(?:of\s+)?(?:professional\s+)?experience/i,
+    // "X-year career / track record / professional"
+    /(\d+)-year\s+(?:career|track\s+record|professional|background|industry|work)/i,
+    // "worked for X years"
+    /worked\s+(?:for\s+)?(\d+)\+?\s*years?/i,
   ];
   for (const re of explicit) {
     const m = text.match(re);

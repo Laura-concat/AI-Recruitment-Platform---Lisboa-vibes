@@ -101,8 +101,8 @@ export default function CandidateProfilePage() {
           name,
           initials,
           experience: yrs ? `${yrs} yr${yrs !== 1 ? "s" : ""}` : INITIAL.experience,
-          skills: data.skills?.length ? data.skills : INITIAL.skills,
-          languages: data.languages?.length ? data.languages : INITIAL.languages,
+          skills: data.skills ?? [],
+          languages: data.languages ?? [],
           summary: data.summary ?? INITIAL.summary,
           education: eduStr,
           experience_items: Array.isArray(data.experienceItems) && data.experienceItems.length
@@ -162,6 +162,7 @@ export default function CandidateProfilePage() {
         languages: draft.languages,
         education: draft.education,
         experienceItems: draft.experience_items,
+        experienceYears: draft.experienceYears || undefined,
       });
       setProfile(createProfileDraft(draft));
       setEditing(false);
@@ -201,9 +202,30 @@ export default function CandidateProfilePage() {
               ) : (
                 <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
               )}
-              <p className="text-gray-500 text-sm mt-0.5">
-                {profile.title} · {profile.experience} · {profile.location} · Remote-ready · {profile.languages.join(" & ")}
-              </p>
+              {editing ? (
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-xs text-gray-400">Yrs exp:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={draft.experienceYears}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      setDraft({
+                        ...draft,
+                        experienceYears: isNaN(v) ? 0 : v,
+                        experience: isNaN(v) || v === 0 ? "" : `${v} yr${v !== 1 ? "s" : ""}`,
+                      });
+                    }}
+                    className="w-16 text-sm border border-gray-300 rounded-md px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
+                  />
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm mt-0.5">
+                  {profile.title} · {profile.experience} · {profile.location} · Remote-ready · {profile.languages.join(" & ")}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex gap-2">

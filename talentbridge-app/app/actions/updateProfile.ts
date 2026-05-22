@@ -12,6 +12,7 @@ interface ProfileUpdate {
   languages?: string[];
   education?: { degree: string; institution: string; year?: number } | string;
   experienceItems?: { role: string; company: string; period: string }[];
+  experienceYears?: number;
 }
 
 export async function updateProfile(data: ProfileUpdate) {
