@@ -94,23 +94,23 @@ export default function CandidateProfilePage() {
         setHasProfile(true);
         const name = data.fullName ?? user?.fullName ?? user?.firstName ?? INITIAL.name;
         const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
-        const eduStr = formatEducation(data.education) || INITIAL.education;
-        const yrs = data.experienceYears ?? INITIAL.experienceYears;
+        const eduStr = formatEducation(data.education) || "";
+        const yrs = data.experienceYears ?? null;
         const merged: CandidateProfile = {
           ...INITIAL,
           name,
           initials,
-          experience: yrs ? `${yrs} yr${yrs !== 1 ? "s" : ""}` : INITIAL.experience,
+          experience: yrs != null ? `${yrs} yr${yrs !== 1 ? "s" : ""}` : "",
           skills: data.skills ?? [],
           languages: data.languages ?? [],
-          summary: data.summary ?? INITIAL.summary,
+          summary: data.summary ?? "",
           education: eduStr,
           experience_items: Array.isArray(data.experienceItems) && data.experienceItems.length
             ? data.experienceItems
-            : INITIAL.experience_items,
-          experienceYears: yrs,
-          experienceLevel: data.seniorityLevel ?? INITIAL.experienceLevel,
-          languageProficiency: data.languages?.join(" & ") || INITIAL.languageProficiency,
+            : [],
+          experienceYears: yrs ?? 0,
+          experienceLevel: data.seniorityLevel ?? "",
+          languageProficiency: data.languages?.join(" & ") || "",
         };
         setProfile(createProfileDraft(merged));
         setDraft(createProfileDraft(merged));
@@ -223,7 +223,13 @@ export default function CandidateProfilePage() {
                 </div>
               ) : (
                 <p className="text-gray-500 text-sm mt-0.5">
-                  {profile.title} · {profile.experience} · {profile.location} · Remote-ready · {profile.languages.join(" & ")}
+                  {[
+                    profile.title,
+                    profile.experience || null,
+                    profile.location,
+                    "Remote-ready",
+                    profile.languages.length ? profile.languages.join(" & ") : null,
+                  ].filter(Boolean).join(" · ")}
                 </p>
               )}
             </div>
