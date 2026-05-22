@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   '/login(.*)',
   '/pricing(.*)',
   '/api/webhooks/(.*)',
+  '/api/test-login(.*)',
+  '/api/inngest(.*)',
 ])
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
