@@ -164,13 +164,43 @@ For issues to work with `/ralph-orchestrate`:
 - Phase 1: `/ralph-orchestrate` triages issues and generates an execution script
 - Phase 2: The bash script invokes fresh Claude sessions per issue
 
+## Database Environments
+
+**IMPORTANT: Default to the local/dev database at all times. Only interact with the production database when explicitly asked.**
+
+| Environment | Database | Location |
+|-------------|----------|----------|
+| **Local development** | Neon (dev) | `DATABASE_URL` in `talentbridge-app/.env.local` |
+| **Production** | Neon (`talentbridge-production` project) | `DATABASE_URL` on Vercel — eu-west-2 |
+
+### Rules
+- All local work, testing, and migrations use the **dev database** in `.env.local`
+- The **production database** is only touched when deploying or explicitly asked to interact with production data
+- Never run destructive queries (DELETE, DROP, TRUNCATE) on production without explicit confirmation
+- To run migrations on production: use the `neon()` client with the production connection string, not `sql.unsafe()` — use template literals which commit correctly
+
+## Deployment
+
+- **Frontend**: Vercel — https://talentbridge-app-alpha.vercel.app
+- **Production DB**: Neon `talentbridge-production` project (eu-west-2)
+- **Deploy command**: `vercel --prod --yes` from `talentbridge-app/`
+- All env vars are set on Vercel (12 variables including Clerk, Neon, Blob, Stripe, Anthropic, Voyage, Inngest)
+
 ## Current Focus
 
-The MVP focuses on these core capabilities:
+The MVP is live at https://talentbridge-app-alpha.vercel.app. Core features built:
+- CV upload + local skill/experience parsing
+- Candidate profile with AI-extracted data
+- Client dashboard with job posting and skill-based candidate matching
+- In-app notifications + intro request flow with email (Resend)
+- Admin page at `/admin` for laura@concat.tech
 
-- CV uploader for the candidates
-- AI analysis of the CV's to automatically fill out a candidate profile in the platform
-- Job description uploader for the clients
+Remaining to fully activate in production:
+1. Clerk — add production domain to allowed URLs
+2. Stripe — add price IDs + register webhook
+3. Resend — add `RESEND_API_KEY` to Vercel for emails
+4. Inngest — register app for AI CV analysis + matching pipelines
+5. Custom domain (optional)
 
 See `confabulator/implementation-plan.md` for the complete development roadmap.
 
