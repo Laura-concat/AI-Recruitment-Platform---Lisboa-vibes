@@ -313,7 +313,7 @@ const SKILL_DISPLAY: Record<string, string> = {
   "langchain": "LangChain", "openai": "OpenAI", "stripe": "Stripe", "clerk": "Clerk",
 };
 
-function extractSkills(text: string): string[] {
+export function extractSkills(text: string): string[] {
   const lower = text.toLowerCase();
   const found = new Set<string>();
 

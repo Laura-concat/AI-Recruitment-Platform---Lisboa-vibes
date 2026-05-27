@@ -4,58 +4,73 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { jobs, candidateProfiles, matches } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { extractSkills } from "@/lib/cv-parser";
 
 const SENIORITY_ORDER = ["junior", "mid", "senior", "lead"];
+
+function inferJobSeniority(title: string, description: string): string | null {
+  const text = (title + " " + description).toLowerCase();
+  if (/\bjunior\b|\bentry[\s-]level\b|\bgraduate\b|\bintern\b/.test(text)) return "junior";
+  if (/\bsenior\b|\blead\b|\bprincipal\b|\bstaff\b|\bhead of\b/.test(text)) return "senior";
+  if (/\bmid[\s-]level\b|\bintermediate\b/.test(text)) return "mid";
+  return null;
+}
 
 function scoreCandidate(
   candidate: {
     skills: string[];
     seniorityLevel: string | null;
     experienceYears: number | null;
-    summary: string | null;
   },
-  jobText: string,
-  jobTitle: string
+  jobSkills: string[],
+  jobTitle: string,
+  jobDescription: string
 ): { score: number; explanation: string } {
-  const jt = (jobTitle + " " + jobText).toLowerCase();
+  const jobSkillsLower = new Set(jobSkills.map((s) => s.toLowerCase()));
+  const candidateSkillsLower = new Set(candidate.skills.map((s) => s.toLowerCase()));
 
-  // Skill overlap
-  const matchedSkills = candidate.skills.filter((s) => jt.includes(s.toLowerCase()));
-  const skillScore = candidate.skills.length
-    ? Math.round((matchedSkills.length / Math.max(candidate.skills.length, 1)) * 50)
-    : 0;
+  // Which of the job's required skills does the candidate actually have?
+  const coveredSkills = jobSkills.filter((s) => candidateSkillsLower.has(s.toLowerCase()));
+  // Which candidate skills are relevant (mentioned anywhere in the job text)?
+  const jobText = (jobTitle + " " + jobDescription).toLowerCase();
+  const bonusSkills = candidate.skills.filter(
+    (s) => !jobSkillsLower.has(s.toLowerCase()) && jobText.includes(s.toLowerCase())
+  );
 
-  // Seniority match — check job title/description for seniority keywords
-  let seniorityScore = 15;
-  const titleLower = jobTitle.toLowerCase();
-  const jobSeniority = titleLower.includes("junior") || titleLower.includes("entry")
-    ? "junior"
-    : titleLower.includes("senior") || titleLower.includes("lead") || titleLower.includes("principal")
-    ? "senior"
-    : titleLower.includes("mid") || titleLower.includes("intermediate")
-    ? "mid"
-    : null;
+  // Coverage score: how much of what the job needs does the candidate cover? (0–65)
+  const coverageRatio = jobSkills.length > 0 ? coveredSkills.length / jobSkills.length : 0;
+  const coverageScore = Math.round(coverageRatio * 65);
 
+  // Bonus for additional relevant skills mentioned in the JD (0–10)
+  const bonusScore = Math.min(10, bonusSkills.length * 3);
+
+  // Seniority match (0–20)
+  const jobSeniority = inferJobSeniority(jobTitle, jobDescription);
+  let seniorityScore = 10; // neutral if we can't determine
   if (jobSeniority && candidate.seniorityLevel) {
     const jobIdx = SENIORITY_ORDER.indexOf(jobSeniority);
     const candIdx = SENIORITY_ORDER.indexOf(candidate.seniorityLevel);
     const diff = Math.abs(jobIdx - candIdx);
-    seniorityScore = diff === 0 ? 30 : diff === 1 ? 20 : 5;
+    seniorityScore = diff === 0 ? 20 : diff === 1 ? 12 : 3;
   }
 
-  // Experience years — check for mentions in job text
-  const expMatch = jt.match(/(\d+)\+?\s*years?/);
-  let expScore = 10;
+  // Experience years (0–5 bonus)
+  const expMatch = jobDescription.match(/(\d+)\+?\s*years?\s+(?:of\s+)?(?:professional\s+)?experience/i);
+  let expScore = 3;
   if (expMatch && candidate.experienceYears != null) {
     const required = parseInt(expMatch[1], 10);
-    expScore = candidate.experienceYears >= required ? 20 : candidate.experienceYears >= required - 1 ? 12 : 5;
+    expScore = candidate.experienceYears >= required ? 5 : candidate.experienceYears >= required - 1 ? 3 : 1;
   }
 
-  const total = Math.min(100, skillScore + seniorityScore + expScore);
+  const total = Math.min(100, coverageScore + bonusScore + seniorityScore + expScore);
 
-  const explanation = matchedSkills.length
-    ? `Matched ${matchedSkills.length} skill${matchedSkills.length !== 1 ? "s" : ""}: ${matchedSkills.slice(0, 5).join(", ")}${matchedSkills.length > 5 ? ` +${matchedSkills.length - 5} more` : ""}.`
-    : "No direct skill overlap found with the job description.";
+  // Build explanation
+  const allMatched = [...coveredSkills, ...bonusSkills];
+  const explanation = allMatched.length > 0
+    ? `Strong match on ${allMatched.slice(0, 6).join(", ")}${allMatched.length > 6 ? ` +${allMatched.length - 6} more` : ""}. Covers ${coveredSkills.length} of ${jobSkills.length} required skill${jobSkills.length !== 1 ? "s" : ""}.`
+    : jobSkills.length > 0
+    ? `No overlap with the ${jobSkills.length} identified required skills.`
+    : "Matched based on seniority and experience level.";
 
   return { score: total, explanation };
 }
@@ -93,9 +108,12 @@ export async function triggerMatching(jobId: string): Promise<{ ok: boolean; err
       return { ok: true };
     }
 
-    // Score all candidates
+    // Extract required skills from the job description using the CV parser's skill dictionary
+    const jobSkills = extractSkills((job.title ?? "") + " " + (job.description ?? ""));
+
+    // Score all candidates against those required skills
     const scored = candidates
-      .map((c) => ({ ...c, ...scoreCandidate(c, job.description ?? "", job.title) }))
+      .map((c) => ({ ...c, ...scoreCandidate(c, jobSkills, job.title, job.description ?? "") }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
