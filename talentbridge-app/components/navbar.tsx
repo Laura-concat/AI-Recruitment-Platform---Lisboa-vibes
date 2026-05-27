@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+
+const ADMIN_EMAIL = "laura@concat.tech";
 
 interface NavbarProps {
   variant?: "public" | "candidate" | "client";
@@ -8,6 +11,9 @@ interface NavbarProps {
 }
 
 export function Navbar({ variant = "public", userName }: NavbarProps) {
+  const { user } = useUser();
+  const isAdmin = user?.emailAddresses?.[0]?.emailAddress === ADMIN_EMAIL;
+
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
@@ -42,6 +48,9 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <Link href="/dashboard" className="hover:text-[#1a3d2b]">Dashboard</Link>
               <Link href="/profile" className="hover:text-[#1a3d2b]">My Profile</Link>
+              {isAdmin && (
+                <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>
+              )}
               <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
@@ -60,6 +69,9 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
               <Link href="/dashboard/client/jobs" className="hover:text-[#1a3d2b]">My Jobs</Link>
               <Link href="/dashboard/client/candidates" className="hover:text-[#1a3d2b]">Candidates</Link>
               <Link href="/dashboard/client/billing" className="hover:text-[#1a3d2b]">Billing</Link>
+              {isAdmin && (
+                <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>
+              )}
               <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
