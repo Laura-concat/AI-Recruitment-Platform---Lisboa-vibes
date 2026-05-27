@@ -2,9 +2,11 @@
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { matches, candidateProfiles, jobs, users, introRequests } from "@/lib/db/schema";
+import { matches, candidateProfiles, jobs, users, introRequests, notifications } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendIntroRequestEmails } from "@/lib/email";
+
+const ADMIN_EMAIL = "laura@concat.tech";
 
 export async function requestIntro(
   matchId: string
@@ -57,6 +59,30 @@ export async function requestIntro(
   const clerkUser = await currentUser();
   const clientEmail = clerkUser?.emailAddresses[0]?.emailAddress ?? "";
   const clientName = clerkUser?.fullName ?? clerkUser?.firstName ?? null;
+
+  // In-app notification for the candidate
+  await db.insert(notifications).values({
+    userId: row.candidateUserId,
+    title: "A company is interested in you!",
+    body: `You've been shortlisted for ${row.jobTitle}. The TalentBridge team will be in touch to arrange an introduction.`,
+    link: "/dashboard",
+  });
+
+  // In-app notification for admin
+  const [adminUser] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, ADMIN_EMAIL))
+    .limit(1);
+
+  if (adminUser) {
+    await db.insert(notifications).values({
+      userId: adminUser.id,
+      title: "New intro request",
+      body: `${clientName ?? clientEmail} requested an intro with ${row.candidateName ?? "a candidate"} for ${row.jobTitle}.`,
+      link: "/admin",
+    });
+  }
 
   if (candidateUser?.email) {
     await sendIntroRequestEmails({

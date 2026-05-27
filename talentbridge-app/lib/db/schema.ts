@@ -189,6 +189,25 @@ export const subscriptions = pgTable(
   ]
 );
 
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    link: text("link"),
+    read: boolean("read").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("notifications_user_id_idx").on(table.userId),
+    index("notifications_read_idx").on(table.read),
+  ]
+);
+
 export const introRequests = pgTable(
   "intro_requests",
   {

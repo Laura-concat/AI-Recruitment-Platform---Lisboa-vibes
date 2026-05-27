@@ -2,8 +2,34 @@
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 
 const ADMIN_EMAIL = "laura@concat.tech";
+
+function NotificationBell() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/notifications/unread-count")
+      .then((r) => r.json())
+      .then((d) => setCount(d.count ?? 0))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <Link href="/notifications" className="relative hover:opacity-80 transition-opacity" aria-label="Notifications">
+      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      {count > 0 && (
+        <span className="absolute -top-1.5 -right-1.5 bg-[#1a3d2b] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 interface NavbarProps {
   variant?: "public" | "candidate" | "client";
@@ -51,6 +77,7 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
               {isAdmin && (
                 <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>
               )}
+              <NotificationBell />
               <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
@@ -72,6 +99,7 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
               {isAdmin && (
                 <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>
               )}
+              <NotificationBell />
               <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
