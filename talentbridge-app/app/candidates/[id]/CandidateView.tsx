@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Navbar } from "@/components/navbar";
+import { requestIntro } from "@/app/actions/requestIntro";
 
 interface ExperienceItem {
   role: string;
@@ -44,6 +45,7 @@ function initials(name: string | null): string {
 }
 
 export default function CandidateView({
+  matchId,
   matchScore,
   matchExplanation,
   jobTitle,
@@ -59,6 +61,20 @@ export default function CandidateView({
 }: Props) {
   const [verdict, setVerdict] = useState<"fit" | "not-fit" | null>(null);
   const [introSent, setIntroSent] = useState(false);
+  const [introError, setIntroError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleRequestIntro() {
+    setIntroError(null);
+    startTransition(async () => {
+      const result = await requestIntro(matchId);
+      if (result.ok) {
+        setIntroSent(true);
+      } else {
+        setIntroError(result.error ?? "Something went wrong");
+      }
+    });
+  }
 
   const name = fullName ?? "Anonymous Candidate";
   const eduStr = formatEducation(education);
@@ -108,12 +124,13 @@ export default function CandidateView({
                 </div>
               </div>
               <button
-                onClick={() => setIntroSent(true)}
-                disabled={introSent}
+                onClick={handleRequestIntro}
+                disabled={introSent || isPending}
                 className="w-full bg-[#1a3d2b] text-white text-sm py-2.5 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {introSent ? "Intro Requested ✓" : "Request Intro →"}
+                {isPending ? "Sending…" : introSent ? "Intro Requested ✓" : "Request Intro →"}
               </button>
+              {introError && <p className="text-xs text-red-500 mt-1">{introError}</p>}
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -165,18 +182,15 @@ export default function CandidateView({
                 {verdict === "not-fit" ? "Not a Fit ✓" : "Not a fit"}
               </button>
               <button
-                onClick={() => {
-                  setVerdict("fit");
-                  setIntroSent(true);
-                }}
-                disabled={introSent}
+                onClick={() => { setVerdict("fit"); handleRequestIntro(); }}
+                disabled={introSent || isPending}
                 className={`flex-1 text-sm py-2 rounded-md transition-colors ${
                   verdict === "fit"
                     ? "bg-[#1a3d2b] text-white opacity-70 cursor-default"
                     : "bg-[#1a3d2b] text-white hover:opacity-90"
                 }`}
               >
-                {verdict === "fit" ? "Intro Sent ✓" : "Request intro →"}
+                {verdict === "fit" && introSent ? "Intro Sent ✓" : isPending ? "Sending…" : "Request intro →"}
               </button>
             </div>
           </div>

@@ -44,6 +44,12 @@ export const matchOutcomeEnum = pgEnum("match_outcome", [
   "rejected",
 ]);
 
+export const introRequestStatusEnum = pgEnum("intro_request_status", [
+  "pending",
+  "accepted",
+  "declined",
+]);
+
 export const subscriptionTierEnum = pgEnum("subscription_tier", [
   "basic",
   "pro",
@@ -180,6 +186,32 @@ export const subscriptions = pgTable(
     index("subscriptions_stripe_subscription_id_idx").on(
       table.stripeSubscriptionId
     ),
+  ]
+);
+
+export const introRequests = pgTable(
+  "intro_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    clientUserId: text("client_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    candidateProfileId: uuid("candidate_profile_id")
+      .notNull()
+      .references(() => candidateProfiles.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    status: introRequestStatusEnum("status").notNull().default("pending"),
+    message: text("message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("intro_requests_match_id_idx").on(table.matchId),
+    index("intro_requests_client_user_id_idx").on(table.clientUserId),
   ]
 );
 
