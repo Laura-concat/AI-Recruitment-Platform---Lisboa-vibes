@@ -59,9 +59,8 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
           <>
             <div className="hidden md:flex items-center gap-8 text-sm text-gray-600">
               <Link href="/" className="hover:text-[#1a3d2b]">Home</Link>
-              <Link href="/#features" className="hover:text-[#1a3d2b]">Features</Link>
-              <Link href="/pricing" className="hover:text-[#1a3d2b]">Pricing</Link>
-              <Link href="/#clients" className="hover:text-[#1a3d2b]">For Clients</Link>
+              <Link href="/for-developers" className="hover:text-[#1a3d2b]">For Developers</Link>
+              <Link href="/pricing" className="hover:text-[#1a3d2b]">For Clients</Link>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-sm text-gray-600 hover:text-[#1a3d2b] px-3 py-1.5">

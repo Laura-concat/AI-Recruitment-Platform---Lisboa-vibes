@@ -1,5 +1,45 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
+import { Footer } from "@/components/footer";
+
+const testimonials = [
+  {
+    quote:
+      "We found our senior React engineer within a week. The AI matching was spot-on — CONCAT sent us exactly 3 profiles and the first one was a perfect fit. We've never hired this fast.",
+    name: "Omar Al-Rashid",
+    role: "CTO",
+    company: "Fintech Saudi",
+    location: "Riyadh, KSA",
+    initials: "OR",
+  },
+  {
+    quote:
+      "As a startup, we don't have time to sift through hundreds of CVs. CONCAT Recruit gave us pre-vetted, bilingual developers who understood our culture from day one.",
+    name: "Nadia Khalil",
+    role: "Head of Engineering",
+    company: "Loops Ventures",
+    location: "Dubai, UAE",
+    initials: "NK",
+  },
+  {
+    quote:
+      "We've used LinkedIn and other platforms for years. Nothing comes close to the quality and relevance of candidates from CONCAT. The Arab-speaking talent pool is unmatched.",
+    name: "Rami Yousef",
+    role: "Co-Founder & CEO",
+    company: "NovaTech MENA",
+    location: "Beirut, Lebanon",
+    initials: "RY",
+  },
+];
+
+const partnerLogos = [
+  { name: "Fintech Saudi", abbr: "FS" },
+  { name: "Loops Ventures", abbr: "LV" },
+  { name: "NovaTech MENA", abbr: "NT" },
+  { name: "Gulf Digital", abbr: "GD" },
+  { name: "Cedar Labs", abbr: "CL" },
+  { name: "Astra Systems", abbr: "AS" },
+];
 
 export default function LandingPage() {
   return (
@@ -18,13 +58,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap gap-3 mb-10">
             <Link
-              href="/sign-up"
+              href="/for-developers"
               className="bg-[#1a3d2b] text-white px-6 py-3 rounded-md font-medium hover:opacity-90 transition-opacity"
             >
               Apply as Developer
             </Link>
             <Link
-              href="/sign-up"
+              href="/pricing"
               className="border border-[#1a3d2b] text-[#1a3d2b] px-6 py-3 rounded-md font-medium hover:bg-[#f0fdf4] transition-colors"
             >
               Hire Developers →
@@ -38,11 +78,34 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Partner logos */}
+      <section className="border-y border-gray-100 py-10">
+        <div className="mx-auto max-w-6xl px-6">
+          <p className="text-center text-xs uppercase tracking-widest text-gray-400 mb-8">
+            Trusted by leading companies across the MENA region
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+            {partnerLogos.map((logo) => (
+              <div
+                key={logo.name}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 bg-gray-50"
+                title={logo.name}
+              >
+                <span className="w-7 h-7 rounded-md bg-[#1a3d2b] text-white text-xs font-bold flex items-center justify-center">
+                  {logo.abbr}
+                </span>
+                <span className="text-sm font-medium text-gray-600">{logo.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section id="features" className="bg-gray-50 py-16">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Why TalentBridge?
+            Why CONCAT Recruit?
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
@@ -64,25 +127,61 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-6xl px-6 py-20 text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Ready to hire smarter?
+      {/* Testimonials */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+          What our clients say
         </h2>
-        <p className="text-gray-500 mb-8">
-          Join 120+ companies already using TalentBridge to find their next hire.
+        <p className="text-center text-gray-500 mb-12 max-w-lg mx-auto">
+          Companies across the Gulf and Europe trust CONCAT Recruit to find the right technical talent, fast.
         </p>
-        <Link
-          href="/sign-up"
-          className="bg-[#1a3d2b] text-white px-8 py-3 rounded-md font-medium hover:opacity-90 transition-opacity"
-        >
-          Get Started Free
-        </Link>
+        <div className="grid md:grid-cols-3 gap-6">
+          {testimonials.map((t) => (
+            <div key={t.name} className="bg-gray-50 border border-gray-100 rounded-xl p-6 flex flex-col">
+              <p className="text-sm text-gray-600 leading-relaxed flex-1 mb-6">
+                &ldquo;{t.quote}&rdquo;
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#1a3d2b] text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                  {t.initials}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+                  <p className="text-xs text-gray-400">{t.role} · {t.company} · {t.location}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-400">
-        © 2026 TalentBridge. All rights reserved.
-      </footer>
+      {/* CTA */}
+      <section className="bg-gray-50 py-20 text-center">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Ready to hire smarter?
+          </h2>
+          <p className="text-gray-500 mb-8">
+            Join 120+ companies already using CONCAT Recruit to find their next hire.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Link
+              href="/pricing"
+              className="bg-[#1a3d2b] text-white px-8 py-3 rounded-md font-medium hover:opacity-90 transition-opacity"
+            >
+              View Plans & Pricing
+            </Link>
+            <Link
+              href="/for-developers"
+              className="border border-gray-300 text-gray-700 px-8 py-3 rounded-md font-medium hover:bg-white transition-colors"
+            >
+              Apply as a Developer
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
