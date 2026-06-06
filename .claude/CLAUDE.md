@@ -181,14 +181,14 @@ For issues to work with `/ralph-orchestrate`:
 
 ## Deployment
 
-- **Frontend**: Vercel — https://talentbridge-app-alpha.vercel.app
+- **Frontend**: Vercel — https://app.concat.tech (alias: https://talentbridge-app-alpha.vercel.app)
 - **Production DB**: Neon `talentbridge-production` project (eu-west-2)
 - **Deploy command**: `vercel --prod --yes` from `talentbridge-app/`
 - All env vars are set on Vercel (12 variables including Clerk, Neon, Blob, Stripe, Anthropic, Voyage, Inngest)
 
 ## Current Focus
 
-The MVP is live at https://talentbridge-app-alpha.vercel.app. Core features built:
+The MVP is live at https://app.concat.tech. Core features built:
 - CV upload + local skill/experience parsing
 - Candidate profile with AI-extracted data
 - Client dashboard with job posting and skill-based candidate matching
