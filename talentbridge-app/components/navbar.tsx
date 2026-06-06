@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
@@ -43,8 +44,15 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="text-[#1a3d2b] font-bold text-xl tracking-tight">
-          TalentBridge
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/CONCAT Recruit Logo.jpg"
+            alt="CONCAT Recruit"
+            width={120}
+            height={48}
+            className="h-10 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {variant === "public" && (

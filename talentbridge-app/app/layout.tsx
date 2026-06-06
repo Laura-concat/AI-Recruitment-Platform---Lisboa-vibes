@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TalentBridge — Elite Arab-Speaking Developer Talent",
+  title: "CONCAT Recruit — Elite Arab-Speaking Developer Talent",
   description:
     "AI-powered recruitment platform connecting top refugee and female developers in the MENA region with companies in the Gulf and Europe.",
 };
