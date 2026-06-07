@@ -80,6 +80,7 @@ export const candidateProfiles = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     fullName: text("full_name"),
+    location: text("location"),
     skills: text("skills").array().notNull().default([]),
     experienceYears: integer("experience_years"),
     seniorityLevel: seniorityEnum("seniority_level"),
@@ -88,7 +89,10 @@ export const candidateProfiles = pgTable(
     education: json("education"),
     summary: text("summary"),
     embedding: vector("embedding", { dimensions: 1024 }),
-    isVisible: boolean("is_visible").notNull().default(true),
+    isVisible: boolean("is_visible").notNull().default(false),
+    testStatus: text("test_status").default("not_taken"),
+    testScore: integer("test_score"),
+    testTakenAt: timestamp("test_taken_at"),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [

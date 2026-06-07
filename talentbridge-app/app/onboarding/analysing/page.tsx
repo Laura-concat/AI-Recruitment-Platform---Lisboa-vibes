@@ -38,9 +38,17 @@ function AIAnalysingContent() {
   useEffect(() => {
     if (!cvId) {
       // No real CV — simulate completion after animation
-      const timer = setTimeout(() => router.push("/profile"), 7000);
+      const timer = setTimeout(() => router.push("/onboarding/test"), 7000);
       return () => clearTimeout(timer);
     }
+
+    // Safety net: redirect to profile after 90s regardless
+    const timeout = setTimeout(() => {
+      if (!completedRef.current) {
+        completedRef.current = true;
+        router.push("/onboarding/test");
+      }
+    }, 90000);
 
     const poll = setInterval(async () => {
       if (completedRef.current) return;
@@ -53,7 +61,7 @@ function AIAnalysingContent() {
           completedRef.current = true;
           clearInterval(poll);
           setProgress(100);
-          setTimeout(() => router.push("/profile"), 600);
+          setTimeout(() => router.push("/onboarding/test"), 600);
         } else if (data.status === "failed") {
           completedRef.current = true;
           clearInterval(poll);
@@ -64,7 +72,7 @@ function AIAnalysingContent() {
       }
     }, 2000);
 
-    return () => clearInterval(poll);
+    return () => { clearInterval(poll); clearTimeout(timeout); };
   }, [cvId, router]);
 
   const completedCount = STEPS.filter((s) => progress >= s.threshold).length;

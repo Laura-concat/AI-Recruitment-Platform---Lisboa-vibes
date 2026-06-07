@@ -20,5 +20,7 @@ export async function GET() {
 
   // Never expose the raw embedding vector to the client
   const { embedding: _embedding, ...rest } = profile;
-  return Response.json(rest);
+  return Response.json(rest, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }

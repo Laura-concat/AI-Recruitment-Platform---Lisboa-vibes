@@ -2,6 +2,7 @@
 
 export interface ParsedProfile {
   fullName: string | null;
+  location: string | null;
   summary: string | null;
   skills: string[];
   languages: string[];
@@ -121,6 +122,15 @@ function getSection(sections: Section[], ...keys: string[]): string {
 
 // ─── Name extraction ───────────────────────────────────────────────────────────
 
+const COUNTRY_CITY_WORDS = new Set([
+  "lebanon", "syria", "jordan", "egypt", "iraq", "palestine", "qatar", "uae",
+  "emirates", "bahrain", "kuwait", "oman", "saudi", "arabia", "turkey", "morocco",
+  "tunisia", "algeria", "libya", "sudan", "yemen", "iran", "pakistan", "dubai",
+  "riyadh", "beirut", "amman", "cairo", "baghdad", "damascus", "doha", "muscat",
+  "london", "berlin", "paris", "amsterdam", "germany", "france", "uk", "europe",
+  "remote", "available", "open",
+]);
+
 function extractName(contactText: string): string | null {
   // Strip emails, phones, URLs, known keywords, separators
   const cleaned = contactText
@@ -132,18 +142,41 @@ function extractName(contactText: string): string | null {
     .replace(/\s+/g, " ")
     .trim();
 
-  // First 2–4 consecutive words that are all alphabetic (name-like)
+  // First 2–3 consecutive alphabetic words that are not countries/cities
   const words = cleaned.split(/\s+/).filter(Boolean);
   const nameWords: string[] = [];
-  for (const word of words.slice(0, 6)) {
-    if (/^[\p{L}\-'.]+$/u.test(word)) {
+  for (const word of words.slice(0, 8)) {
+    if (/^[\p{L}\-'.]+$/u.test(word) && !COUNTRY_CITY_WORDS.has(word.toLowerCase())) {
       nameWords.push(word);
-      if (nameWords.length === 4) break;
+      if (nameWords.length === 3) break;
     } else {
       break;
     }
   }
-  return nameWords.length >= 2 ? nameWords.join(" ") : null;
+
+  if (nameWords.length < 2) return null;
+  // Return first + last only (drop middle name)
+  return nameWords.length === 3
+    ? `${nameWords[0]} ${nameWords[2]}`
+    : nameWords.join(" ");
+}
+
+// ─── Location extraction ───────────────────────────────────────────────────────
+
+function extractLocation(contactText: string): string | null {
+  // Match "City, Country" or "City - Country" patterns
+  const cityCountryMatch = contactText.match(
+    /([A-Z][a-zA-Z\s]+),\s*(Lebanon|Syria|Jordan|Egypt|Iraq|Palestine|Qatar|UAE|Emirates|Bahrain|Kuwait|Oman|Saudi Arabia|Turkey|Morocco|Tunisia|Algeria|Libya|Sudan|Yemen|Iran|Pakistan|Germany|France|UK|Netherlands|Sweden|Denmark|Norway|Finland|Switzerland|Belgium|Austria|Spain|Italy|Portugal|Canada|Australia|USA|United States|United Kingdom)/
+  );
+  if (cityCountryMatch) return cityCountryMatch[0].trim();
+
+  // Match standalone known cities
+  const cityMatch = contactText.match(
+    /\b(Beirut|Amman|Cairo|Baghdad|Damascus|Doha|Dubai|Abu Dhabi|Riyadh|Jeddah|Muscat|Kuwait City|Manama|Casablanca|Tunis|Algiers|Tripoli|Khartoum|Sana'a|Tehran|Islamabad|Karachi|London|Berlin|Paris|Amsterdam|Stockholm|Copenhagen|Zurich|Toronto|Sydney)\b/i
+  );
+  if (cityMatch) return cityMatch[0].trim();
+
+  return null;
 }
 
 // ─── Summary extraction ────────────────────────────────────────────────────────
@@ -476,16 +509,18 @@ export function parseProfileFromText(text: string): ParsedProfile {
   const eduSection = getSection(sections, "education", "academic_background");
 
   const fullName = extractName(contact);
+  const location = extractLocation(contact);
   const summary = extractSummary(summarySection);
   const skills = extractSkills(text);
   const languages = extractLanguages(text);
-  // Only scan the experience section — falling back to full text picks up education dates
-  const experienceItems = extractExperienceItems(expSection);
+  // Try the labelled experience section first, fall back to full text so unlabelled CVs still work
+  const experienceItems = extractExperienceItems(expSection || text);
+  // Try labelled education section first, fall back to full text
   const education = extractEducation(eduSection || text);
   // Derive years from already-parsed items first; fall back to explicit phrases in exp section
   const experienceYears =
-    yearsFromExperienceItems(experienceItems) ?? extractExperienceYears(expSection);
+    yearsFromExperienceItems(experienceItems) ?? extractExperienceYears(expSection || text);
   const seniorityLevel = inferSeniority(experienceYears);
 
-  return { fullName, summary, skills, languages, experienceYears, seniorityLevel, experienceItems, education };
+  return { fullName, location, summary, skills, languages, experienceYears, seniorityLevel, experienceItems, education };
 }

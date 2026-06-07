@@ -3,12 +3,11 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { cvs, users, candidateProfiles } from "@/lib/db/schema";
-import { eq, and, gt, count } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { put } from "@/lib/blob";
 import { inngest } from "@/lib/inngest/client";
 import { extractTextFromBuffer, parseProfileFromText } from "@/lib/cv-parser";
 
-const DAILY_LIMIT = process.env.NODE_ENV === "development" ? 50 : 3;
 
 export async function uploadCv(formData: FormData) {
   const { userId } = await auth();
@@ -38,17 +37,6 @@ export async function uploadCv(formData: FormData) {
     return { error: "File is too large. Maximum size is 10 MB." };
   }
 
-  // Rate limit: max 3 uploads per user per 24 hours
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [{ value: recentCount }] = await db
-    .select({ value: count() })
-    .from(cvs)
-    .where(and(eq(cvs.userId, userId), gt(cvs.uploadedAt, yesterday)));
-
-  if (recentCount >= DAILY_LIMIT) {
-    return { error: "Daily upload limit reached. You can upload up to 3 CVs per day." };
-  }
-
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return { error: "File storage is not configured yet. Please add BLOB_READ_WRITE_TOKEN to your environment." };
   }
@@ -64,16 +52,17 @@ export async function uploadCv(formData: FormData) {
     addRandomSuffix: true,
   });
 
-  // Create CV record
+  // Create CV record — mark complete immediately; Inngest can enrich later if configured
   const [cv] = await db
     .insert(cvs)
-    .values({ userId, fileUrl: blob.url, status: parsed ? "complete" : "pending" })
+    .values({ userId, fileUrl: blob.url, status: "complete" })
     .returning({ id: cvs.id });
 
   // Upsert candidate profile with parsed data
   if (parsed) {
     const profileData = {
       fullName: parsed.fullName ?? undefined,
+      location: parsed.location ?? undefined,
       skills: parsed.skills,
       languages: parsed.languages,
       experienceYears: parsed.experienceYears ?? undefined,
@@ -83,15 +72,25 @@ export async function uploadCv(formData: FormData) {
       summary: parsed.summary ?? undefined,
       updatedAt: new Date(),
     };
+    const { location: _loc, ...profileDataWithoutLocation } = profileData;
     const existing = await db
       .select({ id: candidateProfiles.id })
       .from(candidateProfiles)
       .where(eq(candidateProfiles.userId, userId))
       .limit(1);
-    if (existing.length > 0) {
-      await db.update(candidateProfiles).set(profileData).where(eq(candidateProfiles.userId, userId));
-    } else {
-      await db.insert(candidateProfiles).values({ userId, ...profileData });
+    try {
+      if (existing.length > 0) {
+        await db.update(candidateProfiles).set(profileData).where(eq(candidateProfiles.userId, userId));
+      } else {
+        await db.insert(candidateProfiles).values({ userId, ...profileData });
+      }
+    } catch {
+      // Fallback: save without location if the column doesn't exist in production yet
+      if (existing.length > 0) {
+        await db.update(candidateProfiles).set(profileDataWithoutLocation).where(eq(candidateProfiles.userId, userId));
+      } else {
+        await db.insert(candidateProfiles).values({ userId, ...profileDataWithoutLocation });
+      }
     }
   }
 

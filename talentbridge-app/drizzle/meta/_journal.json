@@ -36,6 +36,20 @@
       "when": 1779866338610,
       "tag": "0004_sturdy_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780756976640,
+      "tag": "0005_burly_wither",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780841992746,
+      "tag": "0006_amusing_azazel",
+      "breakpoints": true
     }
   ]
 }

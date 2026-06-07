@@ -42,27 +42,59 @@ interface CandidateProfile {
 }
 
 const INITIAL = {
-  name: "Leila Mansour",
-  initials: "LM",
-  title: "Full-Stack Developer",
-  experience: "5 yrs",
-  location: "Beirut, Lebanon",
-  availability: "Remote-ready",
-  languages: ["Arabic", "English"],
-  completeness: 92,
-  skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker", "AWS"],
-  experienceLevel: "Senior",
-  experienceYears: 5,
-  languageProficiency: "Arabic & English",
-  education: "BSc Computer Science — AUB, 2019",
-  availability2: "Full-time · Remote · From June 2026",
-  summary:
-    "Experienced full-stack developer with 5 years in Fintech & e-commerce across MENA. Bilingual Arabic/English.",
-  experience_items: [
-    { role: "Senior Frontend Dev", company: "Fintech Startup, Beirut", period: "2022–Present" },
-    { role: "Full-Stack Developer", company: "E-commerce Agency, Amman", period: "2019–2022" },
-  ],
+  name: "",
+  initials: "",
+  title: "",
+  experience: "",
+  location: "",
+  availability: "",
+  languages: [] as string[],
+  completeness: 0,
+  skills: [] as string[],
+  experienceLevel: "",
+  experienceYears: 0,
+  languageProficiency: "",
+  education: "",
+  availability2: "",
+  summary: "",
+  experience_items: [] as ExperienceItem[],
 };
+
+function calcCompleteness(data: {
+  name: string;
+  summary: string;
+  skills: string[];
+  experience_items: ExperienceItem[];
+  education: string;
+  languages: string[];
+}): number {
+  let score = 0;
+  if (data.name) score += 20;
+  if (data.summary) score += 20;
+  if (data.skills.length > 0) score += 25;
+  if (data.experience_items.length > 0) score += 20;
+  if (data.education) score += 10;
+  if (data.languages.length > 0) score += 5;
+  return Math.min(score, 100);
+}
+
+function getCompletenessTips(data: {
+  name: string;
+  summary: string;
+  skills: string[];
+  experience_items: ExperienceItem[];
+  education: string;
+  languages: string[];
+}): string[] {
+  const tips: string[] = [];
+  if (!data.name) tips.push("Add your full name");
+  if (!data.summary) tips.push("Add a professional summary");
+  if (data.skills.length === 0) tips.push("Add your technical skills");
+  if (data.experience_items.length === 0) tips.push("Add your work experience");
+  if (!data.education) tips.push("Add your education details");
+  if (data.languages.length === 0) tips.push("Add the languages you speak");
+  return tips;
+}
 
 function createProfileDraft(source: CandidateProfile): CandidateProfile {
   return {
@@ -84,7 +116,7 @@ export default function CandidateProfilePage() {
 
   // Fetch real profile from DB on mount
   useEffect(() => {
-    fetch("/api/profile")
+    fetch("/api/profile", { cache: "no-store" })
       .then((res) => {
         if (!res.ok) { setHasProfile(false); return null; }
         return res.json();
@@ -96,21 +128,25 @@ export default function CandidateProfilePage() {
         const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
         const eduStr = formatEducation(data.education) || "";
         const yrs = data.experienceYears ?? null;
+        const skills = data.skills ?? [];
+        const languages = data.languages ?? [];
+        const experience_items = Array.isArray(data.experienceItems) && data.experienceItems.length
+          ? data.experienceItems : [];
         const merged: CandidateProfile = {
           ...INITIAL,
           name,
           initials,
           experience: yrs != null ? `${yrs} yr${yrs !== 1 ? "s" : ""}` : "",
-          skills: data.skills ?? [],
-          languages: data.languages ?? [],
+          skills,
+          languages,
           summary: data.summary ?? "",
           education: eduStr,
-          experience_items: Array.isArray(data.experienceItems) && data.experienceItems.length
-            ? data.experienceItems
-            : [],
+          experience_items,
           experienceYears: yrs ?? 0,
           experienceLevel: data.seniorityLevel ?? "",
-          languageProficiency: data.languages?.join(" & ") || "",
+          languageProficiency: languages.join(" & ") || "",
+          location: data.location ?? "",
+          completeness: calcCompleteness({ name, summary: data.summary ?? "", skills, experience_items, education: eduStr, languages }),
         };
         setProfile(createProfileDraft(merged));
         setDraft(createProfileDraft(merged));
@@ -275,7 +311,29 @@ export default function CandidateProfilePage() {
               <div className="text-5xl font-bold text-[#1a3d2b] mb-1">
                 {profile.completeness}%
               </div>
-              <p className="text-xs text-gray-400">Profile completeness</p>
+              <p className="text-xs text-gray-400 mb-3">Profile completeness</p>
+              {profile.completeness < 100 && (() => {
+                const tips = getCompletenessTips({
+                  name: profile.name,
+                  summary: profile.summary,
+                  skills: profile.skills,
+                  experience_items: profile.experience_items,
+                  education: profile.education,
+                  languages: profile.languages,
+                });
+                return tips.length > 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
+                    <p className="text-xs font-semibold text-amber-700 mb-1.5">To reach 100%:</p>
+                    <ul className="space-y-1">
+                      {tips.map((tip) => (
+                        <li key={tip} className="text-xs text-amber-700 flex items-start gap-1.5">
+                          <span className="mt-0.5">→</span>{tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null;
+              })()}
               <div className="mt-4 space-y-2 text-sm text-gray-600">
                 <div className="flex justify-between">
                   <span>Technical Skills</span>
@@ -397,13 +455,20 @@ export default function CandidateProfilePage() {
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <h3 className="font-semibold text-gray-900 mb-2">Availability</h3>
               {editing ? (
-                <input
+                <select
                   value={draft.availability2}
                   onChange={(e) => setDraft({ ...draft, availability2: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
-                />
+                  className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
+                >
+                  <option value="">Select availability…</option>
+                  <option value="Available — Full-time">Available — Full-time</option>
+                  <option value="Available — Part-time">Available — Part-time</option>
+                  <option value="Available — Freelance / Contract">Available — Freelance / Contract</option>
+                  <option value="Open to offers">Open to offers</option>
+                  <option value="Not currently available">Not currently available</option>
+                </select>
               ) : (
-                <p className="text-sm text-gray-600">{profile.availability2}</p>
+                <p className="text-sm text-gray-600">{profile.availability2 || "Not set"}</p>
               )}
             </div>
 

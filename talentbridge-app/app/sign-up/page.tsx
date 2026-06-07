@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs/legacy";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser, useClerk } from "@clerk/nextjs";
 
 type Step = "role" | "form" | "verify";
 type Role = "developer" | "client";
@@ -14,7 +14,9 @@ export default function SignUpPage() {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { signOut } = useClerk();
 
+  // If already signed in, redirect to the right dashboard
   useEffect(() => {
     if (isSignedIn && user) {
       const role = user.unsafeMetadata?.role as string | undefined;
@@ -41,6 +43,8 @@ export default function SignUpPage() {
     setError(null);
     setLoading(true);
     try {
+      // Clear any stale session before creating a new account
+      if (isSignedIn) await signOut();
       await signUp.create({
         emailAddress: email,
         password,
