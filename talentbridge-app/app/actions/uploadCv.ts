@@ -2,12 +2,8 @@
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { cvs, users, candidateProfiles } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { cvs, users } from "@/lib/db/schema";
 import { put } from "@/lib/blob";
-import { inngest } from "@/lib/inngest/client";
-import { extractTextFromBuffer, parseProfileFromText } from "@/lib/cv-parser";
-
 
 export async function uploadCv(formData: FormData) {
   const { userId } = await auth();
@@ -41,65 +37,22 @@ export async function uploadCv(formData: FormData) {
     return { error: "File storage is not configured yet. Please add BLOB_READ_WRITE_TOKEN to your environment." };
   }
 
-  // Extract text and parse profile fields before uploading (while we still have the File object)
   const buffer = Buffer.from(await file.arrayBuffer());
-  const text = await extractTextFromBuffer(buffer, file.type);
-  const parsed = text ? parseProfileFromText(text) : null;
+  const fileName = file.name;
+  const mimeType = file.type;
 
-  // Upload to Vercel Blob (private)
-  const blob = await put(`cvs/${userId}/${Date.now()}-${file.name}`, file, {
-    access: "private",
+  // Upload to Vercel Blob
+  const blob = await put(`cvs/${userId}/${Date.now()}-${fileName}`, buffer, {
+    access: "public",
     addRandomSuffix: true,
+    contentType: mimeType,
   });
 
-  // Create CV record — mark complete immediately; Inngest can enrich later if configured
+  // Insert CV as pending — extraction happens in /api/cvs/[id]/analyse
   const [cv] = await db
     .insert(cvs)
-    .values({ userId, fileUrl: blob.url, status: "complete" })
+    .values({ userId, fileUrl: blob.url, status: "pending" })
     .returning({ id: cvs.id });
 
-  // Upsert candidate profile with parsed data
-  if (parsed) {
-    const profileData = {
-      fullName: parsed.fullName ?? undefined,
-      location: parsed.location ?? undefined,
-      skills: parsed.skills,
-      languages: parsed.languages,
-      experienceYears: parsed.experienceYears ?? undefined,
-      seniorityLevel: parsed.seniorityLevel ?? undefined,
-      experienceItems: parsed.experienceItems.length ? parsed.experienceItems : undefined,
-      education: parsed.education ?? undefined,
-      summary: parsed.summary ?? undefined,
-      updatedAt: new Date(),
-    };
-    const { location: _loc, ...profileDataWithoutLocation } = profileData;
-    const existing = await db
-      .select({ id: candidateProfiles.id })
-      .from(candidateProfiles)
-      .where(eq(candidateProfiles.userId, userId))
-      .limit(1);
-    try {
-      if (existing.length > 0) {
-        await db.update(candidateProfiles).set(profileData).where(eq(candidateProfiles.userId, userId));
-      } else {
-        await db.insert(candidateProfiles).values({ userId, ...profileData });
-      }
-    } catch {
-      // Fallback: save without location if the column doesn't exist in production yet
-      if (existing.length > 0) {
-        await db.update(candidateProfiles).set(profileDataWithoutLocation).where(eq(candidateProfiles.userId, userId));
-      } else {
-        await db.insert(candidateProfiles).values({ userId, ...profileDataWithoutLocation });
-      }
-    }
-  }
-
-  // Fire Inngest event for AI analysis when keys are available
-  try {
-    await inngest.send({ name: "cv/upload.received", data: { cvId: cv.id } });
-  } catch {
-    // Inngest not yet configured
-  }
-
-  return { cvId: cv.id, status: parsed ? "complete" : "processing" };
+  return { cvId: cv.id };
 }

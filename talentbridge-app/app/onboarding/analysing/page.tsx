@@ -34,45 +34,34 @@ function AIAnalysingContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Poll real CV status if cvId is present
+  // Trigger CV analysis and wait for it to complete
   useEffect(() => {
     if (!cvId) {
       // No real CV — simulate completion after animation
-      const timer = setTimeout(() => router.push("/onboarding/test"), 7000);
+      const timer = setTimeout(() => router.push("/profile"), 7000);
       return () => clearTimeout(timer);
     }
 
-    // Safety net: redirect to profile after 90s regardless
-    const timeout = setTimeout(() => {
-      if (!completedRef.current) {
+    if (completedRef.current) return;
+
+    fetch(`/api/cvs/${cvId}/analyse`, { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (completedRef.current) return;
         completedRef.current = true;
-        router.push("/onboarding/test");
-      }
-    }, 90000);
-
-    const poll = setInterval(async () => {
-      if (completedRef.current) return;
-      try {
-        const res = await fetch(`/api/cvs/${cvId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-
         if (data.status === "complete") {
-          completedRef.current = true;
-          clearInterval(poll);
           setProgress(100);
-          setTimeout(() => router.push("/onboarding/test"), 600);
-        } else if (data.status === "failed") {
-          completedRef.current = true;
-          clearInterval(poll);
+          setTimeout(() => router.push("/profile"), 600);
+        } else {
           setFailed(true);
         }
-      } catch {
-        // network error — keep polling
-      }
-    }, 2000);
-
-    return () => { clearInterval(poll); clearTimeout(timeout); };
+      })
+      .catch(() => {
+        if (!completedRef.current) {
+          completedRef.current = true;
+          setFailed(true);
+        }
+      });
   }, [cvId, router]);
 
   const completedCount = STEPS.filter((s) => progress >= s.threshold).length;
