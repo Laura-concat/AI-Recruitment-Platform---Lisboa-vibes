@@ -128,30 +128,56 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
-          What our clients say
-        </h2>
-        <p className="text-center text-gray-500 mb-12 max-w-lg mx-auto">
-          Companies across the Gulf and Europe trust CONCAT Recruit to find the right technical talent, fast.
-        </p>
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <div key={t.name} className="bg-gray-50 border border-gray-100 rounded-xl p-6 flex flex-col">
-              <p className="text-sm text-gray-600 leading-relaxed flex-1 mb-6">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1a3d2b] text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
-                  {t.initials}
+      <section className="bg-[#1a3d2b] py-24 overflow-hidden">
+        <div className="mx-auto max-w-6xl px-6">
+          <p className="text-center text-[#86efac] text-xs font-semibold uppercase tracking-widest mb-3">
+            Client Stories
+          </p>
+          <h2 className="text-4xl font-bold text-center text-white mb-16">
+            What our clients say
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="relative bg-white/10 border border-white/15 rounded-2xl p-8 flex flex-col overflow-hidden"
+              >
+                {/* Decorative background quote mark */}
+                <span
+                  className="absolute -top-4 -right-1 text-[9rem] leading-none select-none pointer-events-none text-white/8"
+                  style={{ fontFamily: "var(--font-playfair)" }}
+                >
+                  &ldquo;
+                </span>
+
+                {/* Stars */}
+                <div className="flex gap-0.5 mb-5">
+                  {[0,1,2,3,4].map((i) => (
+                    <span key={i} className="text-amber-400 text-sm">★</span>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{t.name}</p>
-                  <p className="text-xs text-gray-400">{t.role} · {t.company} · {t.location}</p>
+
+                {/* Quote */}
+                <p
+                  className="text-white/90 text-[1.05rem] leading-relaxed italic flex-1 mb-8"
+                  style={{ fontFamily: "var(--font-playfair)" }}
+                >
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+
+                {/* Attribution */}
+                <div className="flex items-center gap-3 pt-6 border-t border-white/20">
+                  <div className="w-10 h-10 rounded-full bg-white/20 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                    {t.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{t.name}</p>
+                    <p className="text-xs text-white/50">{t.role} · {t.company}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
