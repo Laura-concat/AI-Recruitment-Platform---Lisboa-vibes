@@ -6,6 +6,91 @@ import { useUser } from "@clerk/nextjs";
 import { Navbar } from "@/components/navbar";
 import { updateProfile } from "@/app/actions/updateProfile";
 
+// Map of normalised skill name → devicons path segment
+const DEVICON_MAP: Record<string, string> = {
+  "react": "react/react-original",
+  "react native": "react/react-original",
+  "next.js": "nextjs/nextjs-original",
+  "nextjs": "nextjs/nextjs-original",
+  "node.js": "nodejs/nodejs-original",
+  "nodejs": "nodejs/nodejs-original",
+  "typescript": "typescript/typescript-original",
+  "javascript": "javascript/javascript-original",
+  "python": "python/python-original",
+  "django": "django/django-plain",
+  "fastapi": "fastapi/fastapi-original",
+  "vue.js": "vuejs/vuejs-original",
+  "vuejs": "vuejs/vuejs-original",
+  "angular": "angularjs/angularjs-original",
+  "html": "html5/html5-original",
+  "css": "css3/css3-original",
+  "tailwind": "tailwindcss/tailwindcss-original",
+  "tailwindcss": "tailwindcss/tailwindcss-original",
+  "graphql": "graphql/graphql-plain",
+  "redux": "redux/redux-original",
+  "postgresql": "postgresql/postgresql-original",
+  "postgres": "postgresql/postgresql-original",
+  "mysql": "mysql/mysql-original",
+  "mongodb": "mongodb/mongodb-original",
+  "redis": "redis/redis-original",
+  "firebase": "firebase/firebase-plain",
+  "docker": "docker/docker-original",
+  "kubernetes": "kubernetes/kubernetes-plain",
+  "aws": "amazonwebservices/amazonwebservices-plain-wordmark",
+  "git": "git/git-original",
+  "php": "php/php-original",
+  "java": "java/java-original",
+  "go": "go/go-original",
+  "golang": "go/go-original",
+  "rust": "rust/rust-original",
+  "swift": "swift/swift-original",
+  "kotlin": "kotlin/kotlin-original",
+  "flutter": "flutter/flutter-original",
+  "dart": "dart/dart-original",
+  "linux": "linux/linux-original",
+  "figma": "figma/figma-original",
+  "laravel": "laravel/laravel-original",
+  "express": "express/express-original",
+  "expressjs": "express/express-original",
+  "svelte": "svelte/svelte-original",
+  "elixir": "elixir/elixir-original",
+  "ruby": "ruby/ruby-original",
+  "rails": "rails/rails-original",
+  "c#": "csharp/csharp-original",
+  "c++": "cplusplus/cplusplus-original",
+  ".net": "dotnetcore/dotnetcore-original",
+  "azure": "azure/azure-original",
+  "gcp": "googlecloud/googlecloud-original",
+};
+
+function SkillBadge({ skill }: { skill: string }) {
+  const key = skill.toLowerCase();
+  const iconPath = DEVICON_MAP[key];
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (iconPath && !imgFailed) {
+    return (
+      <span className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+        <img
+          src={`https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/${iconPath}.svg`}
+          alt={skill}
+          width={18}
+          height={18}
+          className="flex-shrink-0"
+          onError={() => setImgFailed(true)}
+        />
+        <span className="text-sm font-semibold text-gray-800">{skill}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg px-3 py-2">
+      <span className="text-sm font-semibold text-[#1a3d2b]">{skill}</span>
+    </span>
+  );
+}
+
 function formatEducation(edu: unknown): string {
   if (!edu) return "";
   if (typeof edu === "string") return edu;
@@ -357,7 +442,7 @@ export default function CandidateProfilePage() {
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-3 text-sm">Skills</h3>
+              <h3 className="font-semibold text-gray-900 mb-3 text-sm">Technical Skills</h3>
               {editing ? (
                 <div>
                   <input
@@ -376,10 +461,38 @@ export default function CandidateProfilePage() {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {profile.skills.map((skill) => (
-                    <span key={skill} className="text-xs bg-[#f0fdf4] text-[#1a3d2b] border border-[#bbf7d0] px-2 py-1 rounded-md">
-                      {skill}
-                    </span>
+                    <SkillBadge key={skill} skill={skill} />
                   ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 text-sm">Languages</h3>
+              {editing ? (
+                <div>
+                  <input
+                    value={draft.languages.join(", ")}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                      })
+                    }
+                    className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
+                    placeholder="Arabic, English, French..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Comma-separated</p>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profile.languages.length > 0 ? profile.languages.map((lang) => (
+                    <span key={lang} className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-800 text-sm font-medium px-3 py-1.5 rounded-lg">
+                      🗣 {lang}
+                    </span>
+                  )) : (
+                    <p className="text-xs text-gray-400">No languages added yet</p>
+                  )}
                 </div>
               )}
             </div>
