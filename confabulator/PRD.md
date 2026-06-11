@@ -156,4 +156,34 @@ This platform addresses the saturation and inefficiency of the current recruitme
 
 ---
 
+## Product Decisions (2026-06-11)
+
+### Pricing Model — Hybrid Subscription + Placement Fee
+- Clients pay a **monthly subscription** to access the platform and post roles
+- Tier by active roles: Starter (2 roles), Growth (5 roles), Enterprise (unlimited)
+- Optional **placement fee (5–8%)** on successful hire as secondary revenue
+- Rationale: predictable revenue, invested clients, protects against hire fall-throughs
+
+### Matching Model — AI-Only, No Candidate Applications
+- Candidates **cannot apply** to jobs directly — they are matched passively
+- When a client posts a role, AI automatically surfaces 3–4 developer profiles
+- Client reviews matches and initiates contact
+- Rationale: reduces noise, makes candidates feel selected rather than ignored
+
+### Developer Vetting — Layered 3-Step Process
+All developers must pass before entering the talent pool:
+1. **Technical test** — 45–60 min timed coding challenge (role-specific: frontend / backend / full-stack)
+2. **Profile review** — AI-assisted check of CV for experience depth, tech stack, employment history
+3. **Async Q&A** — 3–5 written questions about real past problems (filters poor communicators)
+
+- Publish **8% acceptance rate** as a marketing signal ("top 8%") — Toptal built their brand on "top 3%"
+- Rejected candidates can reapply after 6 months
+
+### Key Differentiators
+- Curated supply + AI matching = no job board noise
+- Client-side initiation only (no applications from candidates)
+- Vetting process is the core brand value
+
+---
+
 This PRD provides a comprehensive guideline to develop the Recruitment AI Tool, focusing on solving core user problems and delivering measurable success in the recruitment process.

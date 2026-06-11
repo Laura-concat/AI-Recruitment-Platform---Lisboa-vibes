@@ -141,8 +141,8 @@ export default function PricingPage() {
               Meet the developers waiting to work with you
             </h2>
             <p className="text-gray-500 max-w-xl mx-auto">
-              Every profile on CONCAT Recruit is hand-vetted. Here's a sample of the
-              kind of talent you'll be matched with — full profiles unlock when you subscribe.
+              We accept just 8% of applicants — every developer on the platform has cleared
+              our technical bar. Here's a sample of what you'll be matched with.
             </p>
           </div>
 
@@ -154,7 +154,7 @@ export default function PricingPage() {
 
           <div className="text-center">
             <p className="text-sm text-gray-400">
-              500+ vetted developers · Updated weekly · Arabic &amp; English speaking
+              500+ vetted developers · 8% acceptance rate · Updated weekly · Arabic &amp; English speaking
             </p>
           </div>
         </div>
@@ -169,9 +169,27 @@ export default function PricingPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
             Simple. Transparent Pricing.
           </h1>
-          <p className="text-gray-500 mb-4">
+          <p className="text-gray-500 mb-6">
             Unlock full profiles, AI matching, and direct introductions.
           </p>
+          <div className="flex flex-wrap justify-center gap-8 mb-6 text-center">
+            <div>
+              <div className="text-2xl font-bold text-[#1a3d2b]">8%</div>
+              <div className="text-xs text-gray-500 mt-0.5">applicant acceptance rate</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[#1a3d2b]">500+</div>
+              <div className="text-xs text-gray-500 mt-0.5">vetted developers</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[#1a3d2b]">3–4</div>
+              <div className="text-xs text-gray-500 mt-0.5">AI matches per job post</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[#1a3d2b]">&lt;24h</div>
+              <div className="text-xs text-gray-500 mt-0.5">to first match</div>
+            </div>
+          </div>
           <div className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-600">
             <span>Are you a developer?</span>
             <Link href="/for-developers" className="text-[#1a3d2b] font-medium hover:underline">

@@ -45,6 +45,7 @@ export default function ForDevelopersPage() {
             <span>✓ Free for developers</span>
             <span>✓ Only vetted companies</span>
             <span>✓ Arabic & English supported</span>
+            <span>✓ Only top 8% are accepted</span>
           </div>
         </div>
       </section>
@@ -69,7 +70,7 @@ export default function ForDevelopersPage() {
             <BenefitCard
               icon="✅"
               title="Verified & Trusted"
-              description="Being on CONCAT Recruit signals quality. We hand-vet every profile so companies know they're seeing the best."
+              description="We accept only 8% of applicants. Getting on CONCAT Recruit is a signal of quality — companies know they're seeing the best of the best."
             />
             <BenefitCard
               icon="🔒"
@@ -135,8 +136,8 @@ export default function ForDevelopersPage() {
               Who We're Looking For
             </h2>
             <p className="text-gray-500 mb-8">
-              We focus on a specific, underserved talent pool — because quality and
-              fit matter more than volume.
+              We accept just 8% of applicants. If you make it through, you join an
+              exclusive pool of elite Arab-speaking developers — and companies come to you.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">

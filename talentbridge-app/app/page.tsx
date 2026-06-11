@@ -73,7 +73,7 @@ export default function LandingPage() {
           <div className="flex flex-wrap gap-6 text-sm text-gray-500">
             <span>✓ 500+ vetted developers</span>
             <span>✓ 120+ companies hiring</span>
-            <span>✓ 88% match accuracy</span>
+            <span>✓ Only 8% of applicants accepted</span>
           </div>
         </div>
       </section>
@@ -116,7 +116,7 @@ export default function LandingPage() {
             <FeatureCard
               icon="🎯"
               title="Curated Talent Pool"
-              description="Hand-picked top developers from the MENA region — quality over quantity. We pre-screen so you don't have to."
+              description="We accept just 8% of applicants — so every developer you see has already cleared our technical bar. Quality over quantity, always."
             />
             <FeatureCard
               icon="⚡"
