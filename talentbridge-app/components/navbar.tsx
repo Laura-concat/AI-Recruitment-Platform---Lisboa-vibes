@@ -80,7 +80,6 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
           <>
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <Link href="/dashboard" className="hover:text-[#1a3d2b]">Dashboard</Link>
-              <Link href="/profile" className="hover:text-[#1a3d2b]">My Profile</Link>
               {isAdmin && (
                 <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>
               )}
@@ -88,10 +87,10 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
               <Link href="/logout" className="hover:text-red-500 transition-colors">Sign Out</Link>
             </div>
             <Link
-              href="/onboarding/upload"
+              href="/profile"
               className="bg-[#1a3d2b] text-white text-sm px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
             >
-              Upload CV
+              Edit Profile
             </Link>
           </>
         )}

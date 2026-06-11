@@ -146,6 +146,7 @@ export default function CandidateProfilePage() {
           experienceLevel: data.seniorityLevel ?? "",
           languageProficiency: languages.join(" & ") || "",
           location: data.location ?? "",
+          availability2: data.availability ?? "",
           completeness: calcCompleteness({ name, summary: data.summary ?? "", skills, experience_items, education: eduStr, languages }),
         };
         setProfile(createProfileDraft(merged));
@@ -199,6 +200,7 @@ export default function CandidateProfilePage() {
         education: draft.education,
         experienceItems: draft.experience_items,
         experienceYears: draft.experienceYears || undefined,
+        availability: draft.availability2 || undefined,
       });
       setProfile(createProfileDraft(draft));
       setEditing(false);
@@ -291,9 +293,9 @@ export default function CandidateProfilePage() {
             ) : (
               <button
                 onClick={startEdit}
-                className="text-sm border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+                className="text-sm bg-[#1a3d2b] text-white px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
               >
-                Edit Profile
+                ✏️ Edit Profile
               </button>
             )}
           </div>
@@ -454,34 +456,28 @@ export default function CandidateProfilePage() {
 
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <h3 className="font-semibold text-gray-900 mb-2">Availability</h3>
-              {editing ? (
-                <select
-                  value={draft.availability2}
-                  onChange={(e) => setDraft({ ...draft, availability2: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
-                >
-                  <option value="">Select availability…</option>
-                  <option value="Available — Full-time">Available — Full-time</option>
-                  <option value="Available — Part-time">Available — Part-time</option>
-                  <option value="Available — Freelance / Contract">Available — Freelance / Contract</option>
-                  <option value="Open to offers">Open to offers</option>
-                  <option value="Not currently available">Not currently available</option>
-                </select>
-              ) : (
-                <p className="text-sm text-gray-600">{profile.availability2 || "Not set"}</p>
-              )}
+              <select
+                value={editing ? draft.availability2 : profile.availability2}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  if (editing) {
+                    setDraft({ ...draft, availability2: val });
+                  } else {
+                    setProfile({ ...profile, availability2: val });
+                    await updateProfile({ availability: val || undefined });
+                  }
+                }}
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
+              >
+                <option value="">Select availability…</option>
+                <option value="Available — Full-time">Available — Full-time</option>
+                <option value="Available — Part-time">Available — Part-time</option>
+                <option value="Available — Freelance / Contract">Available — Freelance / Contract</option>
+                <option value="Open to offers">Open to offers</option>
+                <option value="Not currently available">Not currently available</option>
+              </select>
             </div>
 
-            {!editing && (
-              <div className="flex gap-3">
-                <Link
-                  href="/dashboard"
-                  className="bg-[#1a3d2b] text-white text-sm px-6 py-2 rounded-md hover:opacity-90 transition-opacity"
-                >
-                  Go to Dashboard →
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       </div>

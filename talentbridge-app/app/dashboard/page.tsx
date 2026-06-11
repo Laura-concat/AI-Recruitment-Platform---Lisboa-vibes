@@ -113,6 +113,24 @@ export default async function CandidateDashboardPage() {
             : "Complete your profile to start getting matched with top companies."}
         </p>
 
+        {/* Profile action card */}
+        {hasProfile && (
+          <div className="mb-6 bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Your profile is live</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Update your skills, experience, and availability so clients see the best version of you.
+              </p>
+            </div>
+            <Link
+              href="/profile"
+              className="shrink-0 bg-[#1a3d2b] text-white text-sm font-medium px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+            >
+              Edit Profile →
+            </Link>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <StatCard value={String(profile?.skills.length ?? 0)} label="Skills on your profile" />
@@ -159,13 +177,6 @@ export default async function CandidateDashboardPage() {
           )}
         </div>
 
-        {/* View client dashboard link */}
-        <div className="mt-10 pt-6 border-t border-gray-200 text-sm text-gray-400">
-          Viewing as a <strong>Candidate</strong>. &nbsp;
-          <Link href="/dashboard/client" className="text-[#1a3d2b] font-medium hover:underline">
-            Switch to Client view →
-          </Link>
-        </div>
       </div>
     </div>
   );
