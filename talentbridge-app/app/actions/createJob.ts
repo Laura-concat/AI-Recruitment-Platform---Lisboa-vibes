@@ -31,6 +31,9 @@ export async function createJob(formData: FormData) {
   let parsed;
   let rawDescription = descriptionInput;
 
+  if (!titleInput) return { error: "Please add a job title." };
+  if (!deadlineRaw) return { error: "Please set an application deadline." };
+
   if (file && file.size > 0) {
     const allowedTypes = [
       "application/pdf",
@@ -46,18 +49,15 @@ export async function createJob(formData: FormData) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const text = await extractTextFromBuffer(buffer, file.type);
     rawDescription = text || descriptionInput;
-    parsed = parseJobFromText(rawDescription, titleInput || undefined);
+    parsed = parseJobFromText(rawDescription, titleInput);
   } else {
-    if (!deadlineRaw) {
-    return { error: "Please set an application deadline." };
-  }
-    if (!descriptionInput && !titleInput) {
-      return { error: "Please provide a job title and description." };
+    if (!descriptionInput || descriptionInput.trim().length < 50) {
+      return { error: "Please write a job description (at least 50 characters)." };
     }
-    parsed = parseJobFromText(rawDescription, titleInput || undefined);
+    parsed = parseJobFromText(rawDescription, titleInput);
   }
 
-  const finalTitle = titleInput || parsed.title || "Untitled Position";
+  const finalTitle = titleInput;
   const finalDescription = `${employmentType} · ${location}\n\n${parsed.description}`;
 
   const [job] = await db

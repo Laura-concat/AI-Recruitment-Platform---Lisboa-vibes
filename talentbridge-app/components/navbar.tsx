@@ -98,9 +98,7 @@ export function Navbar({ variant = "public", userName }: NavbarProps) {
         {variant === "client" && (
           <>
             <div className="flex items-center gap-6 text-sm text-gray-600">
-              <Link href="/dashboard/client" className="hover:text-[#1a3d2b]">Dashboard</Link>
-              <Link href="/dashboard/client/jobs" className="hover:text-[#1a3d2b]">My Jobs</Link>
-              <Link href="/dashboard/client/candidates" className="hover:text-[#1a3d2b]">Candidates</Link>
+              <Link href="/dashboard/client" className="hover:text-[#1a3d2b]">My Jobs</Link>
               <Link href="/dashboard/client/billing" className="hover:text-[#1a3d2b]">Billing</Link>
               {isAdmin && (
                 <Link href="/admin" className="text-[#1a3d2b] font-medium hover:opacity-80">Admin</Link>

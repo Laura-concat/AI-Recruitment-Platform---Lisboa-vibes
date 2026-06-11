@@ -1,9 +1,10 @@
 "use client";
 
 import { Navbar } from "@/components/navbar";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createJob } from "@/app/actions/createJob";
+import { extractJobTitle, extractRequiredYears, extractSkillsFromJD } from "@/lib/jd-parser";
 
 type Mode = "write" | "upload";
 
@@ -18,12 +19,41 @@ export default function PostJobPage() {
 
   // Controlled fields
   const [title, setTitle] = useState("");
+  const [titleWasAutoFilled, setTitleWasAutoFilled] = useState(false);
   const [description, setDescription] = useState("");
+  const [extractedYears, setExtractedYears] = useState<number | null>(null);
+  const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
   const [employmentType, setEmploymentType] = useState("Full-time");
   const [location, setLocation] = useState("Remote");
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [deadline, setDeadline] = useState("");
+
+  // Debounced extraction from description text
+  useEffect(() => {
+    if (mode !== "write" || !description.trim()) {
+      setExtractedYears(null);
+      setExtractedSkills([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const years = extractRequiredYears(description);
+      const skills = extractSkillsFromJD(description);
+      setExtractedYears(years);
+      setExtractedSkills(skills);
+
+      // Auto-suggest title only if the field is empty or was previously auto-filled
+      if (!title || titleWasAutoFilled) {
+        const suggested = extractJobTitle(description);
+        if (suggested) {
+          setTitle(suggested);
+          setTitleWasAutoFilled(true);
+        }
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description, mode]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -40,6 +70,14 @@ export default function PostJobPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Client-side validation
+    if (!title.trim()) { setError("Please add a job title before posting."); return; }
+    if (!deadline) { setError("Please set an application deadline."); return; }
+    if (location === "On-site" && !country.trim()) { setError("Please enter the country for this on-site role."); return; }
+    if (mode === "write" && description.trim().length < 50) { setError("Please write a job description (at least 50 characters)."); return; }
+    if (mode === "upload" && !uploadedFile) { setError("Please upload a job description file."); return; }
+
     setSubmitting(true);
 
     try {
@@ -60,7 +98,7 @@ export default function PostJobPage() {
         setError(result.error ?? "Something went wrong.");
         return;
       }
-      router.push("/dashboard/client");
+      router.push(`/jobs/${result.jobId}/matches`);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -115,13 +153,21 @@ export default function PostJobPage() {
 
             {/* Job Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Job Title *
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">
+                  Job Title *
+                </label>
+                {titleWasAutoFilled && title && (
+                  <span className="text-xs text-[#1a3d2b] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-0.5 rounded-full">
+                    ✨ AI suggested · edit freely
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
+                required
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); setTitleWasAutoFilled(false); }}
                 placeholder="e.g. Senior React Developer"
                 className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
               />
@@ -214,6 +260,26 @@ export default function PostJobPage() {
                   placeholder="Describe the role, responsibilities, required skills, and years of experience..."
                   className="w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
                 />
+                {(extractedYears !== null || extractedSkills.length > 0) && (
+                  <div className="mt-3 p-3 bg-[#f0fdf4] border border-[#bbf7d0] rounded-lg">
+                    <p className="text-xs font-medium text-[#1a3d2b] mb-2">✨ Extracted from your description</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {extractedYears !== null && (
+                        <span className="text-xs bg-white text-[#1a3d2b] border border-[#bbf7d0] px-2.5 py-0.5 rounded-full font-medium">
+                          {extractedYears}+ yrs experience
+                        </span>
+                      )}
+                      {extractedSkills.map((skill) => (
+                        <span key={skill} className="text-xs bg-white text-gray-700 border border-gray-200 px-2.5 py-0.5 rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                    {extractedSkills.length === 0 && description.length > 50 && (
+                      <p className="text-xs text-gray-400 mt-1">No specific tech skills detected — try mentioning frameworks or languages.</p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div>

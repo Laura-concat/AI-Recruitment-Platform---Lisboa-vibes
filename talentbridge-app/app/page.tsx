@@ -5,30 +5,30 @@ import { Footer } from "@/components/footer";
 const testimonials = [
   {
     quote:
-      "We found our senior React engineer within a week. The AI matching was spot-on — CONCAT sent us exactly 3 profiles and the first one was a perfect fit. We've never hired this fast.",
-    name: "Omar Al-Rashid",
-    role: "CTO",
-    company: "Fintech Saudi",
-    location: "Riyadh, KSA",
-    initials: "OR",
+      "Collaborating with CONCAT has been incredibly beneficial for us at Equevu. Their expertise in tech recruitment has provided us with skilled candidates who fit our criteria. We're impressed with the quality of talent they recommend, making our hiring process much smoother and more effective. I'd definitely recommend CONCAT to any company seeking reliable tech recruitment services.",
+    name: "Equevu Team",
+    role: "Hiring Manager",
+    company: "Equevu",
+    location: "",
+    initials: "EQ",
   },
   {
     quote:
-      "As a startup, we don't have time to sift through hundreds of CVs. CONCAT Recruit gave us pre-vetted, bilingual developers who understood our culture from day one.",
-    name: "Nadia Khalil",
-    role: "Head of Engineering",
-    company: "Loops Ventures",
-    location: "Dubai, UAE",
-    initials: "NK",
+      "Working with CONCAT Recruit, we were super impressed by the talent pool in their community. Their innovative approach of reaching refugee and female developers is awesome.",
+    name: "Client",
+    role: "Tech Lead",
+    company: "CONCAT Partner",
+    location: "",
+    initials: "CP",
   },
   {
     quote:
-      "We've used LinkedIn and other platforms for years. Nothing comes close to the quality and relevance of candidates from CONCAT. The Arab-speaking talent pool is unmatched.",
-    name: "Rami Yousef",
-    role: "Co-Founder & CEO",
-    company: "NovaTech MENA",
-    location: "Beirut, Lebanon",
-    initials: "RY",
+      "CONCAT met our expectations with their seamless process and prompt delivery of CVs for Java developers. Their efficiency made the hiring process smooth and hassle-free. Laura, our contact person at CONCAT, was very responsive and helpful.",
+    name: "Hiring Team",
+    role: "Engineering Manager",
+    company: "CONCAT Client",
+    location: "",
+    initials: "CC",
   },
 ];
 

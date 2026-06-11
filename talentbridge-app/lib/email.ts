@@ -12,6 +12,7 @@ export interface IntroRequestEmailData {
   clientEmail: string;
   clientName: string | null;
   matchScore: number;
+  message?: string;
 }
 
 export async function sendIntroRequestEmails(data: IntroRequestEmailData) {
@@ -30,6 +31,7 @@ export async function sendIntroRequestEmails(data: IntroRequestEmailData) {
       html: `
         <p>Hi ${data.candidateName},</p>
         <p>Great news! A company has shown interest in your profile for the role of <strong>${data.jobTitle}</strong>.</p>
+        ${data.message ? `<p><em>"${data.message}"</em></p>` : ""}
         <p>Our team will be in touch with you shortly to arrange an introduction.</p>
         <p>In the meantime, make sure your profile is up to date.</p>
         <br/>
@@ -51,6 +53,7 @@ export async function sendIntroRequestEmails(data: IntroRequestEmailData) {
           <tr><td style="padding:6px 0;color:#666">Client</td><td style="padding:6px 0">${data.clientName ?? data.clientEmail}</td></tr>
           <tr><td style="padding:6px 0;color:#666">Client email</td><td style="padding:6px 0">${data.clientEmail}</td></tr>
           <tr><td style="padding:6px 0;color:#666">Match score</td><td style="padding:6px 0">${data.matchScore}%</td></tr>
+          ${data.message ? `<tr><td style="padding:6px 0;color:#666;vertical-align:top">Client message</td><td style="padding:6px 0;font-style:italic">${data.message}</td></tr>` : ""}
         </table>
         <br/>
         <p style="color:#888;font-size:13px">Log in to TalentBridge to manage this request.</p>

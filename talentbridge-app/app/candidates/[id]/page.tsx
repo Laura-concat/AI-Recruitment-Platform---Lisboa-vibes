@@ -7,13 +7,17 @@ import CandidateView from "./CandidateView";
 
 export default async function ClientCandidateViewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ intro?: string }>;
 }) {
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
   const { id: matchId } = await params;
+  const { intro } = await searchParams;
+  const autoOpenIntro = intro === "1";
 
   // Fetch match + candidate profile + job, verifying client owns the job
   const [row] = await db
@@ -28,6 +32,7 @@ export default async function ClientCandidateViewPage({
       seniorityLevel: candidateProfiles.seniorityLevel,
       languages: candidateProfiles.languages,
       summary: candidateProfiles.summary,
+      personalBio: candidateProfiles.personalBio,
       experienceItems: candidateProfiles.experienceItems,
       education: candidateProfiles.education,
     })
@@ -52,8 +57,10 @@ export default async function ClientCandidateViewPage({
         seniorityLevel={row.seniorityLevel}
         languages={row.languages}
         summary={row.summary}
+        personalBio={row.personalBio ?? null}
         experienceItems={row.experienceItems as { role: string; company: string; period: string }[] | null}
         education={row.education as { degree: string; institution: string; year?: number } | string | null}
+        autoOpenIntro={autoOpenIntro}
       />
     </>
   );

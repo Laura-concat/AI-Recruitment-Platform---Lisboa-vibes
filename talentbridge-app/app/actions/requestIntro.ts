@@ -9,7 +9,8 @@ import { sendIntroRequestEmails } from "@/lib/email";
 const ADMIN_EMAIL = "laura@concat.tech";
 
 export async function requestIntro(
-  matchId: string
+  matchId: string,
+  message?: string
 ): Promise<{ ok: boolean; error?: string }> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "Unauthorized" };
@@ -60,11 +61,13 @@ export async function requestIntro(
   const clientEmail = clerkUser?.emailAddresses[0]?.emailAddress ?? "";
   const clientName = clerkUser?.fullName ?? clerkUser?.firstName ?? null;
 
+  const customMessage = message?.trim() || null;
+
   // In-app notification for the candidate
   await db.insert(notifications).values({
     userId: row.candidateUserId,
     title: "A company is interested in you!",
-    body: `You've been shortlisted for ${row.jobTitle}. The TalentBridge team will be in touch to arrange an introduction.`,
+    body: customMessage ?? `You've been shortlisted for ${row.jobTitle}. The TalentBridge team will be in touch to arrange an introduction.`,
     link: "/dashboard",
   });
 
@@ -92,6 +95,7 @@ export async function requestIntro(
       clientEmail,
       clientName,
       matchScore: Math.round(row.matchScore),
+      message: customMessage ?? undefined,
     });
   }
 

@@ -123,6 +123,7 @@ interface CandidateProfile {
   education: string;
   availability2: string;
   summary: string;
+  personalBio: string;
   experience_items: ExperienceItem[];
   isVisible: boolean;
 }
@@ -143,6 +144,7 @@ const INITIAL: CandidateProfile = {
   education: "",
   availability2: "",
   summary: "",
+  personalBio: "",
   experience_items: [],
   isVisible: false,
 };
@@ -231,6 +233,7 @@ export default function CandidateProfilePage() {
           skills,
           languages,
           summary: data.summary ?? "",
+          personalBio: data.personalBio ?? "",
           education: eduStr,
           experience_items,
           experienceYears: yrs ?? 0,
@@ -308,6 +311,7 @@ export default function CandidateProfilePage() {
       await updateProfile({
         fullName: draft.name,
         summary: draft.summary,
+        personalBio: draft.personalBio || undefined,
         skills: parsedSkills,
         languages: parsedLangs,
         location: draft.location || undefined,
@@ -539,7 +543,7 @@ export default function CandidateProfilePage() {
           {/* Right: Details */}
           <div className="md:col-span-2 space-y-4">
             <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-2">Summary <span className="text-red-500">*</span></h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Professional Summary <span className="text-red-500">*</span></h3>
               {editing ? (
                 <>
                   <textarea
@@ -558,6 +562,24 @@ export default function CandidateProfilePage() {
                 </>
               ) : (
                 <p className="text-sm text-gray-600">{profile.summary}</p>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <h3 className="font-semibold text-gray-900 mb-1">About Me</h3>
+              <p className="text-xs text-gray-400 mb-2">Tell companies who you are beyond your CV — your passions, personality, and what drives you.</p>
+              {editing ? (
+                <textarea
+                  value={draft.personalBio}
+                  onChange={(e) => setDraft({ ...draft, personalBio: e.target.value })}
+                  rows={3}
+                  className="w-full text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
+                  placeholder="e.g. I'm a 26-year-old developer from Cairo who loves building products that solve real problems. Outside of code I'm into competitive chess and hiking..."
+                />
+              ) : profile.personalBio ? (
+                <p className="text-sm text-gray-600 italic">&ldquo;{profile.personalBio}&rdquo;</p>
+              ) : (
+                <p className="text-sm text-gray-400">No personal bio yet — click Edit Profile to add one.</p>
               )}
             </div>
 

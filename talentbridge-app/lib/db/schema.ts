@@ -88,6 +88,7 @@ export const candidateProfiles = pgTable(
     experienceItems: json("experience_items"),
     education: json("education"),
     summary: text("summary"),
+    personalBio: text("personal_bio"),
     embedding: vector("embedding", { dimensions: 1024 }),
     availability: text("availability"),
     isVisible: boolean("is_visible").notNull().default(false),

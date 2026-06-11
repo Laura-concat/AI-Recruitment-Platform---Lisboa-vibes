@@ -4,11 +4,13 @@ import Link from "next/link";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs/legacy";
+import { useClerk } from "@clerk/nextjs";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoaded, signIn, setActive } = useSignIn();
+  const { signOut } = useClerk();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,8 +23,8 @@ function LoginForm() {
 
     const destination = searchParams.get("to") ?? "/dashboard";
 
-    signIn
-      .create({ strategy: "ticket", ticket })
+    signOut()
+      .then(() => signIn.create({ strategy: "ticket", ticket }))
       .then(async (result) => {
         if (result.status === "complete") {
           await setActive({ session: result.createdSessionId });
@@ -33,7 +35,7 @@ function LoginForm() {
         const msg = err?.errors?.[0]?.message ?? "Test login failed.";
         setError(msg);
       });
-  }, [isLoaded, signIn, setActive, searchParams, router]);
+  }, [isLoaded, signIn, setActive, signOut, searchParams, router]);
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +46,7 @@ function LoginForm() {
     }
     setLoading(true);
     try {
+      await signOut();
       const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });

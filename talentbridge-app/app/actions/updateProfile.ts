@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 interface ProfileUpdate {
   fullName?: string;
   summary?: string;
+  personalBio?: string;
   skills?: string[];
   languages?: string[];
   location?: string;

@@ -4,58 +4,45 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { jobs, candidateProfiles, matches } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { extractSkills } from "@/lib/cv-parser";
+import { extractJobRequirements, scoreCandidatesForJob } from "@/lib/claude";
+import { extractSkillsFromJD } from "@/lib/jd-parser";
+import { yearsFromExperienceItems } from "@/lib/cv-parser";
+
+// ─── Regex fallback (used when ANTHROPIC_API_KEY is not set) ──────────────────
 
 const SENIORITY_ORDER = ["junior", "mid", "senior", "lead"];
 
-function inferJobSeniority(title: string, description: string): string | null {
-  const text = (title + " " + description).toLowerCase();
-  if (/\bjunior\b|\bentry[\s-]level\b|\bgraduate\b|\bintern\b/.test(text)) return "junior";
-  if (/\bsenior\b|\blead\b|\bprincipal\b|\bstaff\b|\bhead of\b/.test(text)) return "senior";
-  if (/\bmid[\s-]level\b|\bintermediate\b/.test(text)) return "mid";
+function inferJobSeniority(text: string): string | null {
+  const t = text.toLowerCase();
+  if (/\bjunior\b|\bentry[\s-]level\b|\bgraduate\b|\bintern\b/.test(t)) return "junior";
+  if (/\bsenior\b|\blead\b|\bprincipal\b|\bstaff\b/.test(t)) return "senior";
+  if (/\bmid[\s-]level\b|\bintermediate\b/.test(t)) return "mid";
   return null;
 }
 
-function scoreCandidate(
-  candidate: {
-    skills: string[];
-    seniorityLevel: string | null;
-    experienceYears: number | null;
-  },
+function regexScore(
+  candidate: { skills: string[]; seniorityLevel: string | null; experienceYears: number | null },
   jobSkills: string[],
-  jobTitle: string,
-  jobDescription: string
+  jobText: string
 ): { score: number; explanation: string } {
   const jobSkillsLower = new Set(jobSkills.map((s) => s.toLowerCase()));
-  const candidateSkillsLower = new Set(candidate.skills.map((s) => s.toLowerCase()));
-
-  // Which of the job's required skills does the candidate actually have?
-  const coveredSkills = jobSkills.filter((s) => candidateSkillsLower.has(s.toLowerCase()));
-  // Which candidate skills are relevant (mentioned anywhere in the job text)?
-  const jobText = (jobTitle + " " + jobDescription).toLowerCase();
-  const bonusSkills = candidate.skills.filter(
-    (s) => !jobSkillsLower.has(s.toLowerCase()) && jobText.includes(s.toLowerCase())
+  const candSkillsLower = new Set(candidate.skills.map((s) => s.toLowerCase()));
+  const covered = jobSkills.filter((s) => candSkillsLower.has(s.toLowerCase()));
+  const bonus = candidate.skills.filter(
+    (s) => !jobSkillsLower.has(s.toLowerCase()) && jobText.toLowerCase().includes(s.toLowerCase())
   );
 
-  // Coverage score: how much of what the job needs does the candidate cover? (0–65)
-  const coverageRatio = jobSkills.length > 0 ? coveredSkills.length / jobSkills.length : 0;
-  const coverageScore = Math.round(coverageRatio * 65);
+  const coverageScore = Math.round((jobSkills.length > 0 ? covered.length / jobSkills.length : 0) * 65);
+  const bonusScore = Math.min(10, bonus.length * 3);
 
-  // Bonus for additional relevant skills mentioned in the JD (0–10)
-  const bonusScore = Math.min(10, bonusSkills.length * 3);
-
-  // Seniority match (0–20)
-  const jobSeniority = inferJobSeniority(jobTitle, jobDescription);
-  let seniorityScore = 10; // neutral if we can't determine
+  const jobSeniority = inferJobSeniority(jobText);
+  let seniorityScore = 10;
   if (jobSeniority && candidate.seniorityLevel) {
-    const jobIdx = SENIORITY_ORDER.indexOf(jobSeniority);
-    const candIdx = SENIORITY_ORDER.indexOf(candidate.seniorityLevel);
-    const diff = Math.abs(jobIdx - candIdx);
+    const diff = Math.abs(SENIORITY_ORDER.indexOf(jobSeniority) - SENIORITY_ORDER.indexOf(candidate.seniorityLevel));
     seniorityScore = diff === 0 ? 20 : diff === 1 ? 12 : 3;
   }
 
-  // Experience years (0–5 bonus)
-  const expMatch = jobDescription.match(/(\d+)\+?\s*years?\s+(?:of\s+)?(?:professional\s+)?experience/i);
+  const expMatch = jobText.match(/(\d+)\+?\s*years?\s+(?:of\s+)?(?:professional\s+)?experience/i);
   let expScore = 3;
   if (expMatch && candidate.experienceYears != null) {
     const required = parseInt(expMatch[1], 10);
@@ -63,68 +50,116 @@ function scoreCandidate(
   }
 
   const total = Math.min(100, coverageScore + bonusScore + seniorityScore + expScore);
-
-  // Build explanation
-  const allMatched = [...coveredSkills, ...bonusSkills];
-  const explanation = allMatched.length > 0
-    ? `Strong match on ${allMatched.slice(0, 6).join(", ")}${allMatched.length > 6 ? ` +${allMatched.length - 6} more` : ""}. Covers ${coveredSkills.length} of ${jobSkills.length} required skill${jobSkills.length !== 1 ? "s" : ""}.`
-    : jobSkills.length > 0
-    ? `No overlap with the ${jobSkills.length} identified required skills.`
-    : "Matched based on seniority and experience level.";
+  const all = [...covered, ...bonus];
+  const explanation =
+    all.length > 0
+      ? `Matches on ${all.slice(0, 6).join(", ")}${all.length > 6 ? ` +${all.length - 6} more` : ""}. Covers ${covered.length} of ${jobSkills.length} required skills.`
+      : jobSkills.length > 0
+      ? `No overlap with the ${jobSkills.length} required skills.`
+      : "Matched on seniority and experience.";
 
   return { score: total, explanation };
 }
+
+// ─── Main action ──────────────────────────────────────────────────────────────
 
 export async function triggerMatching(jobId: string): Promise<{ ok: boolean; error?: string }> {
   const { userId } = await auth();
   if (!userId) return { ok: false, error: "Unauthorized" };
 
-  // Verify job belongs to this client
   const [job] = await db
-    .select({ id: jobs.id, title: jobs.title, description: jobs.description })
+    .select({ id: jobs.id, title: jobs.title, description: jobs.description, requirements: jobs.requirements })
     .from(jobs)
     .where(and(eq(jobs.id, jobId), eq(jobs.userId, userId)));
 
   if (!job) return { ok: false, error: "Job not found" };
 
-  // Mark as matching
   await db.update(jobs).set({ status: "matching" }).where(eq(jobs.id, jobId));
 
   try {
-    // Fetch all visible candidate profiles
-    const candidates = await db
+    const rawCandidates = await db
       .select({
         id: candidateProfiles.id,
         skills: candidateProfiles.skills,
         seniorityLevel: candidateProfiles.seniorityLevel,
         experienceYears: candidateProfiles.experienceYears,
         summary: candidateProfiles.summary,
+        experienceItems: candidateProfiles.experienceItems,
       })
       .from(candidateProfiles)
       .where(eq(candidateProfiles.isVisible, true));
 
-    if (candidates.length === 0) {
+    if (rawCandidates.length === 0) {
       await db.update(jobs).set({ status: "complete" }).where(eq(jobs.id, jobId));
       return { ok: true };
     }
 
-    // Extract required skills from the job description using the CV parser's skill dictionary
-    const jobSkills = extractSkills((job.title ?? "") + " " + (job.description ?? ""));
+    // Calculate verified experience years from actual date ranges in work history
+    const candidates = rawCandidates.map((c) => {
+      const items = (c.experienceItems as { role: string; company: string; period: string }[] | null) ?? [];
+      const calculatedYears = items.length > 0 ? yearsFromExperienceItems(items) : null;
+      return {
+        ...c,
+        experienceItems: items,
+        experienceYears: calculatedYears ?? c.experienceYears,
+      };
+    });
 
-    // Score all candidates against those required skills
-    const scored = candidates
-      .map((c) => ({ ...c, ...scoreCandidate(c, jobSkills, job.title, job.description ?? "") }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+    const jdText = `${job.title}\n\n${job.description ?? ""}`;
+    const useAI = !!process.env.ANTHROPIC_API_KEY;
 
-    // Delete existing matches for this job, insert new ones
+    let scored: { id: string; score: number; explanation: string }[];
+    let extractedSkills: string[];
+
+    if (useAI) {
+      const requirements = await extractJobRequirements(jdText);
+      extractedSkills = requirements.skills;
+
+      const aiScores = await scoreCandidatesForJob(
+        { title: job.title, description: job.description ?? "", requirements },
+        candidates
+      );
+      scored = aiScores.map((s) => ({ id: s.candidateId, score: s.score, explanation: s.explanation }));
+
+      // Store AI-extracted skills back on the job
+      const existingReqs = (job.requirements as Record<string, unknown> | null) ?? {};
+      await db
+        .update(jobs)
+        .set({ requirements: { ...existingReqs, skills: extractedSkills, aiExtracted: true } })
+        .where(eq(jobs.id, jobId));
+    } else {
+      extractedSkills = extractSkillsFromJD(jdText);
+      scored = candidates.map((c) => {
+        const { score, explanation } = regexScore(
+          { skills: c.skills, seniorityLevel: c.seniorityLevel, experienceYears: c.experienceYears },
+          extractedSkills,
+          jdText
+        );
+        return { id: c.id, score, explanation };
+      });
+    }
+
+    // Save updated experience years back to profiles where we have better data
+    await Promise.all(
+      candidates
+        .filter((c) => c.experienceYears != null)
+        .map((c) =>
+          db
+            .update(candidateProfiles)
+            .set({ experienceYears: c.experienceYears })
+            .where(eq(candidateProfiles.id, c.id))
+        )
+    );
+
+    const top5 = scored.sort((a, b) => b.score - a.score).slice(0, 5);
+
     await db.delete(matches).where(eq(matches.jobId, jobId));
     await db.insert(matches).values(
-      scored.map((c) => ({
+      top5.map((s) => ({
         jobId,
-        candidateProfileId: c.id,
-        matchScore: c.score,
-        matchExplanation: c.explanation,
+        candidateProfileId: s.id,
+        matchScore: s.score,
+        matchExplanation: s.explanation,
       }))
     );
 

@@ -10,6 +10,7 @@ export interface MatchRow {
   candidateProfileId: string;
   matchScore: number;
   matchExplanation: string | null;
+  outcome: string | null;
   fullName: string | null;
   skills: string[];
   experienceYears: number | null;
@@ -43,6 +44,7 @@ export default async function MatchResultsPage({
       candidateProfileId: matches.candidateProfileId,
       matchScore: matches.matchScore,
       matchExplanation: matches.matchExplanation,
+      outcome: matches.outcome,
       fullName: candidateProfiles.fullName,
       skills: candidateProfiles.skills,
       experienceYears: candidateProfiles.experienceYears,

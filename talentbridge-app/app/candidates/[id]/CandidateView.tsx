@@ -29,8 +29,10 @@ interface Props {
   seniorityLevel: string | null;
   languages: string[];
   summary: string | null;
+  personalBio: string | null;
   experienceItems: ExperienceItem[] | null;
   education: Education | string | null;
+  autoOpenIntro?: boolean;
 }
 
 function formatEducation(edu: Education | string | null): string {
@@ -56,20 +58,27 @@ export default function CandidateView({
   seniorityLevel,
   languages,
   summary,
+  personalBio,
   experienceItems,
   education,
+  autoOpenIntro = false,
 }: Props) {
   const [verdict, setVerdict] = useState<"fit" | "not-fit" | null>(null);
   const [introSent, setIntroSent] = useState(false);
   const [introError, setIntroError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [showIntroModal, setShowIntroModal] = useState(autoOpenIntro);
+  const [introMessage, setIntroMessage] = useState(
+    `Hi, I came across your profile on TalentBridge and I'm very interested in speaking with you about the ${jobTitle} role. We think you could be a great fit for our team. Looking forward to connecting!`
+  );
 
   function handleRequestIntro() {
     setIntroError(null);
     startTransition(async () => {
-      const result = await requestIntro(matchId);
+      const result = await requestIntro(matchId, introMessage);
       if (result.ok) {
         setIntroSent(true);
+        setShowIntroModal(false);
       } else {
         setIntroError(result.error ?? "Something went wrong");
       }
@@ -92,6 +101,61 @@ export default function CandidateView({
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar variant="client" />
+
+      {/* Intro modal */}
+      {showIntroModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Request Introduction</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Send a personalised message to {fullName ?? "this candidate"} via TalentBridge.
+                </p>
+              </div>
+              <button onClick={() => setShowIntroModal(false)} className="text-gray-400 hover:text-gray-600 ml-4 mt-0.5">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Your message</label>
+              <textarea
+                rows={6}
+                value={introMessage}
+                onChange={(e) => setIntroMessage(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                This message will be shared with the candidate by our team.
+              </p>
+            </div>
+
+            {introError && (
+              <p className="text-xs text-red-500 mb-3">{introError}</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowIntroModal(false)}
+                className="flex-1 border border-gray-300 text-gray-600 text-sm py-2.5 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRequestIntro}
+                disabled={isPending || !introMessage.trim()}
+                className="flex-1 bg-[#1a3d2b] text-white text-sm py-2.5 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isPending && <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+                {isPending ? "Sending…" : "Send Introduction Request →"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-5xl px-6 py-10">
         <div className="text-sm text-gray-400 mb-4">
@@ -124,13 +188,12 @@ export default function CandidateView({
                 </div>
               </div>
               <button
-                onClick={handleRequestIntro}
-                disabled={introSent || isPending}
+                onClick={() => setShowIntroModal(true)}
+                disabled={introSent}
                 className="w-full bg-[#1a3d2b] text-white text-sm py-2.5 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {isPending ? "Sending…" : introSent ? "Intro Requested ✓" : "Request Intro →"}
+                {introSent ? "Intro Requested ✓" : "Request Intro →"}
               </button>
-              {introError && <p className="text-xs text-red-500 mt-1">{introError}</p>}
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -182,24 +245,27 @@ export default function CandidateView({
                 {verdict === "not-fit" ? "Not a Fit ✓" : "Not a fit"}
               </button>
               <button
-                onClick={() => { setVerdict("fit"); handleRequestIntro(); }}
-                disabled={introSent || isPending}
-                className={`flex-1 text-sm py-2 rounded-md transition-colors ${
-                  verdict === "fit"
-                    ? "bg-[#1a3d2b] text-white opacity-70 cursor-default"
-                    : "bg-[#1a3d2b] text-white hover:opacity-90"
-                }`}
+                onClick={() => setShowIntroModal(true)}
+                disabled={introSent}
+                className="flex-1 text-sm py-2 rounded-md bg-[#1a3d2b] text-white hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {verdict === "fit" && introSent ? "Intro Sent ✓" : isPending ? "Sending…" : "Request intro →"}
+                {introSent ? "Intro Sent ✓" : "Request intro →"}
               </button>
             </div>
           </div>
 
           {/* Right: Full profile */}
           <div className="md:col-span-2 space-y-4">
+            {personalBio && (
+              <div className="bg-white border border-[#bbf7d0] bg-[#f0fdf4] rounded-xl p-5">
+                <h3 className="font-semibold text-[#1a3d2b] mb-2 text-sm">About me</h3>
+                <p className="text-sm text-gray-700 leading-relaxed italic">&ldquo;{personalBio}&rdquo;</p>
+              </div>
+            )}
+
             {summary && (
               <div className="bg-white border border-gray-200 rounded-xl p-5">
-                <h3 className="font-semibold text-gray-900 mb-2">Summary</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Professional Summary</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{summary}</p>
               </div>
             )}

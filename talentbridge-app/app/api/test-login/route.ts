@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const TEST_USERS: Record<string, { userId: string; destination: string }> = {
   candidate: { userId: "user_3E0Cogz5728TsU6pmnDVaJSjsOv", destination: "/dashboard" },
-  client:    { userId: "user_3E0CowZcwSfE9AILtR5TQgarZ9E", destination: "/dashboard/client" },
+  client:    { userId: "user_3EzinzNFjT6GlTxWWcIjhqVKp6M", destination: "/dashboard/client" },
 };
 
 export async function GET(req: NextRequest) {
