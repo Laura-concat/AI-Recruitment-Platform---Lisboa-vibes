@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { CheckoutButton } from "@/components/checkout-button";
 import { Footer } from "@/components/footer";
+import { ProfileCarousel } from "@/components/profile-carousel";
 
 const plans = [
   {
@@ -72,12 +72,6 @@ interface SampleProfile {
   color: string;
 }
 
-function getSeniority(years: number): { label: string; className: string } {
-  if (years >= 6) return { label: "Senior", className: "bg-purple-100 text-purple-700" };
-  if (years >= 3) return { label: "Mid-level", className: "bg-blue-100 text-blue-700" };
-  return { label: "Junior", className: "bg-amber-100 text-amber-700" };
-}
-
 const sampleProfiles: SampleProfile[] = [
   {
     initials: "LM",
@@ -146,13 +140,7 @@ export default function PricingPage() {
             </p>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory -mx-2 px-2">
-            {sampleProfiles.map((profile) => (
-              <div key={profile.initials} className="flex-shrink-0 w-72 snap-start">
-                <SampleProfileCard profile={profile} />
-              </div>
-            ))}
-          </div>
+          <ProfileCarousel profiles={sampleProfiles} />
 
           <div className="text-center">
             <p className="text-sm text-gray-400">
@@ -232,24 +220,16 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              {plan.plan ? (
-                <CheckoutButton
-                  plan={plan.plan}
-                  label={plan.cta}
-                  className={`block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-60 ${
-                    plan.popular
-                      ? "bg-[#1a3d2b] text-white"
-                      : "border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
-                  }`}
-                />
-              ) : (
-                <Link
-                  href={"ctaHref" in plan ? plan.ctaHref : "/pricing"}
-                  className="block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
-                >
-                  {plan.cta}
-                </Link>
-              )}
+              <Link
+                href="/sign-up"
+                className={`block w-full text-center py-2.5 rounded-md text-sm font-medium transition-opacity hover:opacity-90 ${
+                  plan.popular
+                    ? "bg-[#1a3d2b] text-white"
+                    : "border border-[#1a3d2b] text-[#1a3d2b] hover:bg-[#f0fdf4]"
+                }`}
+              >
+                {plan.cta}
+              </Link>
             </div>
           ))}
         </div>
@@ -264,54 +244,3 @@ export default function PricingPage() {
   );
 }
 
-function SampleProfileCard({ profile }: { profile: SampleProfile }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 relative overflow-hidden">
-      <div className="flex items-start gap-4">
-        {/* Avatar */}
-        <div className={`w-12 h-12 rounded-full ${profile.color} text-white font-bold text-sm flex items-center justify-center flex-shrink-0`}>
-          {profile.initials}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-0.5">
-            <h3 className="font-semibold text-gray-900">{profile.name}</h3>
-            <span className="text-xs font-bold text-[#1a3d2b] bg-[#f0fdf4] px-2 py-0.5 rounded-full">
-              {profile.matchScore}% Fit
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-sm text-gray-600">{profile.title}</p>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getSeniority(profile.experienceYears).className}`}>
-              {getSeniority(profile.experienceYears).label}
-            </span>
-          </div>
-          <p className="text-xs text-gray-400 mb-3">
-            {profile.location} · {profile.remote} · {profile.experienceYears} yrs exp
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {profile.skills.map((skill) => (
-              <span
-                key={skill}
-                className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Locked overlay hint */}
-      <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-xs text-gray-400">Full profile, contact info &amp; AI analysis</span>
-        <span className="text-xs font-medium text-[#1a3d2b] flex items-center gap-1">
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-          </svg>
-          Unlocks with subscription
-        </span>
-      </div>
-    </div>
-  );
-}
