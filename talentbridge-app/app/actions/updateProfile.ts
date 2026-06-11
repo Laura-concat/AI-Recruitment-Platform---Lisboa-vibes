@@ -10,6 +10,7 @@ interface ProfileUpdate {
   summary?: string;
   skills?: string[];
   languages?: string[];
+  location?: string;
   education?: { degree: string; institution: string; year?: number } | string;
   experienceItems?: { role: string; company: string; period: string }[];
   experienceYears?: number;

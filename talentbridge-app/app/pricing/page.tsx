@@ -146,9 +146,11 @@ export default function PricingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory -mx-2 px-2">
             {sampleProfiles.map((profile) => (
-              <SampleProfileCard key={profile.initials} profile={profile} />
+              <div key={profile.initials} className="flex-shrink-0 w-72 snap-start">
+                <SampleProfileCard profile={profile} />
+              </div>
             ))}
           </div>
 

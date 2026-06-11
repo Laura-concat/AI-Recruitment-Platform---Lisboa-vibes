@@ -124,25 +124,27 @@ interface CandidateProfile {
   availability2: string;
   summary: string;
   experience_items: ExperienceItem[];
+  isVisible: boolean;
 }
 
-const INITIAL = {
+const INITIAL: CandidateProfile = {
   name: "",
   initials: "",
   title: "",
   experience: "",
   location: "",
   availability: "",
-  languages: [] as string[],
+  languages: [],
   completeness: 0,
-  skills: [] as string[],
+  skills: [],
   experienceLevel: "",
   experienceYears: 0,
   languageProficiency: "",
   education: "",
   availability2: "",
   summary: "",
-  experience_items: [] as ExperienceItem[],
+  experience_items: [],
+  isVisible: false,
 };
 
 function calcCompleteness(data: {
@@ -195,9 +197,13 @@ export default function CandidateProfilePage() {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [profile, setProfile] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
   const [draft, setDraft] = useState<CandidateProfile>(() => createProfileDraft(INITIAL));
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  // Raw string inputs so comma-typing works naturally; parsed to arrays on save
+  const [skillsRaw, setSkillsRaw] = useState("");
+  const [langsRaw, setLangsRaw] = useState("");
 
   // Fetch real profile from DB on mount
   useEffect(() => {
@@ -232,6 +238,7 @@ export default function CandidateProfilePage() {
           languageProficiency: languages.join(" & ") || "",
           location: data.location ?? "",
           availability2: data.availability ?? "",
+          isVisible: data.isVisible ?? false,
           completeness: calcCompleteness({ name, summary: data.summary ?? "", skills, experience_items, education: eduStr, languages }),
         };
         setProfile(createProfileDraft(merged));
@@ -265,34 +272,56 @@ export default function CandidateProfilePage() {
   }
 
   function startEdit() {
-    setDraft(createProfileDraft(profile));
+    const d = createProfileDraft(profile);
+    setDraft(d);
+    setSkillsRaw(d.skills.join(", "));
+    setLangsRaw(d.languages.join(", "));
     setEditing(true);
     setSaved(false);
   }
 
   function cancelEdit() {
     setEditing(false);
+    setValidationError(null);
+  }
+
+  function wordCount(text: string) {
+    return text.trim().split(/\s+/).filter(Boolean).length;
   }
 
   async function saveEdit() {
+    setValidationError(null);
+    const parsedSkills = skillsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+    const parsedLangs = langsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+    const summaryWords = wordCount(draft.summary);
+
+    if (!draft.name.trim()) { setValidationError("Please add your full name."); return; }
+    if (!draft.summary.trim() || summaryWords < 25) { setValidationError(`Summary needs at least 25 words (currently ${summaryWords}).`); return; }
+    if (summaryWords > 150) { setValidationError(`Summary is too long — maximum 150 words (currently ${summaryWords}).`); return; }
+    if (parsedSkills.length === 0) { setValidationError("Please add at least one technical skill."); return; }
+    if (!draft.location) { setValidationError("Please select your location."); return; }
+    if (!draft.availability2) { setValidationError("Please select your availability."); return; }
+    if (parsedLangs.length === 0) { setValidationError("Please add at least one language you speak."); return; }
+
     setSaving(true);
     try {
       await updateProfile({
         fullName: draft.name,
         summary: draft.summary,
-        skills: draft.skills,
-        languages: draft.languages,
+        skills: parsedSkills,
+        languages: parsedLangs,
+        location: draft.location || undefined,
         education: draft.education,
         experienceItems: draft.experience_items,
         experienceYears: draft.experienceYears || undefined,
         availability: draft.availability2 || undefined,
       });
-      setProfile(createProfileDraft(draft));
+      setProfile(createProfileDraft({ ...draft, skills: parsedSkills, languages: parsedLangs }));
       setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      // keep editing open on error
+      setValidationError("Something went wrong. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -306,6 +335,26 @@ export default function CandidateProfilePage() {
         {saved && (
           <div className="mb-4 bg-[#f0fdf4] border border-[#bbf7d0] text-[#1a3d2b] text-sm px-4 py-3 rounded-lg flex items-center gap-2">
             <span>✓</span> Profile saved successfully.
+          </div>
+        )}
+
+        {/* Vetting steps banner — shown until profile is published */}
+        {!profile.isVisible && hasProfile && !editing && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-xl mt-0.5">🔒</span>
+              <div>
+                <h2 className="font-semibold text-amber-900 text-sm">Your profile is not yet published</h2>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Complete the steps below to have your profile reviewed and made visible to hiring companies.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <VettingStep number={1} title="Upload your CV & build your profile" done />
+              <VettingStep number={2} title="Complete technical assessment" done={false} comingSoon />
+              <VettingStep number={3} title="Answer profile Q&A questions" done={false} comingSoon />
+            </div>
           </div>
         )}
 
@@ -347,10 +396,9 @@ export default function CandidateProfilePage() {
               ) : (
                 <p className="text-gray-500 text-sm mt-0.5">
                   {[
-                    profile.title,
                     profile.experience || null,
-                    profile.location,
-                    "Remote-ready",
+                    profile.location || "Location not set",
+                    profile.availability2 || null,
                     profile.languages.length ? profile.languages.join(" & ") : null,
                   ].filter(Boolean).join(" · ")}
                 </p>
@@ -446,13 +494,8 @@ export default function CandidateProfilePage() {
               {editing ? (
                 <div>
                   <input
-                    value={draft.skills.join(", ")}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        skills: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                      })
-                    }
+                    value={skillsRaw}
+                    onChange={(e) => setSkillsRaw(e.target.value)}
                     className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
                     placeholder="React, Node.js, TypeScript..."
                   />
@@ -472,13 +515,8 @@ export default function CandidateProfilePage() {
               {editing ? (
                 <div>
                   <input
-                    value={draft.languages.join(", ")}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                      })
-                    }
+                    value={langsRaw}
+                    onChange={(e) => setLangsRaw(e.target.value)}
                     className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b]"
                     placeholder="Arabic, English, French..."
                   />
@@ -501,14 +539,23 @@ export default function CandidateProfilePage() {
           {/* Right: Details */}
           <div className="md:col-span-2 space-y-4">
             <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <h3 className="font-semibold text-gray-900 mb-2">Summary</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Summary <span className="text-red-500">*</span></h3>
               {editing ? (
-                <textarea
-                  value={draft.summary}
-                  onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
-                  rows={3}
-                  className="w-full text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
-                />
+                <>
+                  <textarea
+                    value={draft.summary}
+                    onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+                    rows={4}
+                    className="w-full text-sm text-gray-600 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] resize-none"
+                    placeholder="Describe your background, expertise, and what makes you stand out as a developer..."
+                  />
+                  <div className="flex justify-between mt-1">
+                    <p className="text-xs text-gray-400">Min 25 words — max 150 words</p>
+                    <p className={`text-xs font-medium ${wordCount(draft.summary) < 25 ? "text-amber-500" : wordCount(draft.summary) > 150 ? "text-red-500" : "text-[#1a3d2b]"}`}>
+                      {wordCount(draft.summary)} / 150
+                    </p>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm text-gray-600">{profile.summary}</p>
               )}
@@ -555,6 +602,59 @@ export default function CandidateProfilePage() {
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <h3 className="font-semibold text-gray-900 mb-2">Location <span className="text-red-500">*</span></h3>
+              {editing ? (
+                <select
+                  value={draft.location}
+                  onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                  className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3d2b] bg-white"
+                >
+                  <option value="">Select your country…</option>
+                  <optgroup label="MENA Region">
+                    <option>Lebanon</option>
+                    <option>Jordan</option>
+                    <option>Egypt</option>
+                    <option>Syria</option>
+                    <option>Iraq</option>
+                    <option>Palestine</option>
+                    <option>Morocco</option>
+                    <option>Tunisia</option>
+                    <option>Algeria</option>
+                    <option>Libya</option>
+                    <option>Yemen</option>
+                    <option>Sudan</option>
+                  </optgroup>
+                  <optgroup label="Gulf">
+                    <option>UAE</option>
+                    <option>Saudi Arabia</option>
+                    <option>Qatar</option>
+                    <option>Kuwait</option>
+                    <option>Bahrain</option>
+                    <option>Oman</option>
+                  </optgroup>
+                  <optgroup label="Europe">
+                    <option>Germany</option>
+                    <option>France</option>
+                    <option>Netherlands</option>
+                    <option>Sweden</option>
+                    <option>UK</option>
+                    <option>Spain</option>
+                    <option>Portugal</option>
+                    <option>Turkey</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option>Canada</option>
+                    <option>USA</option>
+                    <option>Australia</option>
+                    <option>Other</option>
+                  </optgroup>
+                </select>
+              ) : (
+                <p className="text-sm text-gray-600">{profile.location || <span className="text-gray-400 italic">Not set</span>}</p>
+              )}
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
               <h3 className="font-semibold text-gray-900 mb-2">Education</h3>
               {editing ? (
                 <input
@@ -593,7 +693,60 @@ export default function CandidateProfilePage() {
 
           </div>
         </div>
+
+        {/* Sticky save bar — visible when editing */}
+        {editing && (
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-6 px-6 py-4 mt-6 flex items-center justify-between gap-4 shadow-lg">
+            <div className="flex-1">
+              {validationError && (
+                <p className="text-sm text-red-600 flex items-center gap-1.5">
+                  <span>⚠</span> {validationError}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelEdit}
+                className="text-sm border border-gray-300 px-5 py-2 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="text-sm bg-[#1a3d2b] text-white px-6 py-2 rounded-md hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+              >
+                {saving && <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function VettingStep({ number, title, done, comingSoon }: {
+  number: number;
+  title: string;
+  done: boolean;
+  comingSoon?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      {done ? (
+        <span className="w-6 h-6 rounded-full bg-[#1a3d2b] text-white text-xs flex items-center justify-center flex-shrink-0 font-bold">✓</span>
+      ) : (
+        <span className="w-6 h-6 rounded-full border-2 border-amber-300 text-amber-500 text-xs flex items-center justify-center flex-shrink-0 font-bold">{number}</span>
+      )}
+      <span className={`text-sm flex-1 ${done ? "text-gray-700 line-through" : "text-amber-800 font-medium"}`}>{title}</span>
+      {comingSoon && (
+        <span className="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-medium">Coming soon</span>
+      )}
+      {done && (
+        <span className="text-xs bg-[#f0fdf4] text-[#1a3d2b] px-2 py-0.5 rounded-full font-medium">Complete</span>
+      )}
     </div>
   );
 }

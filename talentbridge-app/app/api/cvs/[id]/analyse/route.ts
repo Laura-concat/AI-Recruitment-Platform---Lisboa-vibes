@@ -49,7 +49,6 @@ export async function POST(
         experienceItems: parsed.experienceItems.length ? parsed.experienceItems : undefined,
         education: parsed.education ?? undefined,
         summary: parsed.summary ?? undefined,
-        isVisible: true,
         updatedAt: new Date(),
       };
 
